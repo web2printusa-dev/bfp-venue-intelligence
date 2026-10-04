@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import './venue-media.css';
+import './mobile-production.css';
 
 export const metadata: Metadata = {
   title: 'NOIR — Venue Intelligence Demo',
