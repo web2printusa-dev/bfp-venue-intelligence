@@ -1,50 +1,27 @@
 import { NextResponse } from 'next/server';
 
-const TABLES = [
-  { name: 'DJ Gallery', guests: 8, minimum: 2500, vibe: 'closest to the DJ and highest energy' },
-  { name: 'Noir Booth', guests: 10, minimum: 1800, vibe: 'elevated VIP view of the main floor' },
-  { name: 'Salon', guests: 6, minimum: 1200, vibe: 'intimate lounge seating near the bar' },
+const EVENTS=[
+ {artist:'MIDNIGHT / AFTER DARK',day:'09',month:'OCT',when:'Thursday',music:'open format',ticketFrom:40},
+ {artist:'SAINT NOIR',day:'10',month:'OCT',when:'Friday',music:'hip-hop',ticketFrom:40},
+ {artist:'THE SATURDAY RITUAL',day:'11',month:'OCT',when:'Saturday',music:'R&B and hip-hop',ticketFrom:40},
 ];
+const TABLES=[
+ {id:'A1',name:'DJ Gallery',guests:8,minimum:2500,status:'available',vibe:'closest to the DJ and highest energy'},
+ {id:'A2',name:'DJ Gallery',guests:8,minimum:2500,status:'held',vibe:'closest to the DJ and highest energy'},
+ {id:'B1',name:'Noir Booth',guests:10,minimum:1800,status:'available',vibe:'elevated VIP view of the main floor'},
+ {id:'B2',name:'Noir Booth',guests:10,minimum:1800,status:'available',vibe:'elevated VIP view of the main floor'},
+ {id:'C1',name:'Salon',guests:6,minimum:1200,status:'reserved',vibe:'intimate lounge seating near the bar'},
+ {id:'C2',name:'Salon',guests:6,minimum:1200,status:'available',vibe:'intimate lounge seating near the bar'},
+];
+const BOTTLES=['Don Julio 1942','Don Julio Blanco','Casamigos Reposado','Moët & Chandon','Veuve Clicquot','Ace of Spades','Hennessy VS','Hennessy VSOP','Cîroc','Grey Goose'];
 
-function localReply(message: string) {
-  const m = message.toLowerCase();
-  const guestMatch = m.match(/(\d+)\s*(people|guests|of us)/);
-  const guests = guestMatch ? Number(guestMatch[1]) : null;
-  const budgetMatch = m.match(/\$?([1-9]\d{2,4})/);
-  const budget = budgetMatch ? Number(budgetMatch[1]) : null;
-  const birthday = m.includes('birthday');
-  const dj = m.includes('dj') || m.includes('booth') || m.includes('close');
-  const matches = TABLES.filter(t => (!guests || t.guests >= guests) && (!budget || t.minimum <= budget));
-  if (matches.length) {
-    const best = dj ? matches.find(t => t.name === 'DJ Gallery') || matches[0] : matches[0];
-    return `${birthday ? 'Happy birthday — ' : ''}${best.name} looks like the best fit. It accommodates up to ${best.guests} guests with a $${best.minimum.toLocaleString()} minimum and is ${best.vibe}. What date are you planning for, and would you like to add bottles now?`;
-  }
-  if (!guests) return 'Absolutely. How many guests will be in your party?';
-  return 'I can help find the closest fit. What is your target table budget, and do you prefer to be near the DJ, on the main floor, or somewhere more private?';
-}
+type Action={type:'tickets'|'tables'|'concierge';label:string;event?:string;experience?:string};
+function eventFromText(text:string){const m=text.toLowerCase();if(m.includes('friday')||m.includes('saint noir')||m.includes('hip-hop')||m.includes('hip hop'))return EVENTS[1];if(m.includes('saturday')||m.includes('ritual')||m.includes('r&b')||m.includes('rnb'))return EVENTS[2];if(m.includes('thursday')||m.includes('midnight')||m.includes('open format'))return EVENTS[0];return null}
+function actionsFor(message:string,reply:string):Action[]{const text=`${message} ${reply}`.toLowerCase();const actions:Action[]=[];const ev=eventFromText(text);if(ev&&(text.includes('ticket')||text.includes('event')||text.includes('admission')||text.includes('buy')))actions.push({type:'tickets',label:`BUY TICKETS — ${ev.artist}`,event:ev.artist});if(text.includes('table')||text.includes('bottle')||text.includes('birthday')||text.includes('dj')||text.includes('vip')||text.includes('deposit')||text.includes('reserve'))actions.push({type:'tables',label:text.includes('deposit')?'CONTINUE TO TABLE / DEPOSIT':'VIEW TABLES & BOTTLE SERVICE',experience:text.includes('bottle')?'Bottle Service':'VIP Table'});if(!actions.length&&text.includes('plan'))actions.push({type:'concierge',label:'KEEP PLANNING WITH VIP CONCIERGE'});return actions.slice(0,2)}
+function localReply(message:string){const m=message.toLowerCase();const guests=Number(m.match(/(\d+)\s*(?:people|guests|of us|girls|guys)?/)?.[1]||0)||null;const budget=Number(m.match(/\$\s?([1-9]\d{2,4})/)?.[1]||0)||null;const ev=eventFromText(m);if(m.includes('recommend')||m.includes('which event')||m.includes('what night')){if(m.includes('r&b')||m.includes('rnb'))return `For R&B with hip-hop, I’d put you at THE SATURDAY RITUAL on Saturday. If you want more straight hip-hop, SAINT NOIR on Friday is the better fit. Want tickets or a table?`;if(m.includes('hip'))return `SAINT NOIR on Friday is the strongest hip-hop fit. If your group wants more R&B mixed in, THE SATURDAY RITUAL on Saturday is the move. Are you thinking tickets or table service?`;return `Thursday is open format at MIDNIGHT / AFTER DARK, Friday is hip-hop at SAINT NOIR, and Saturday blends R&B + hip-hop at THE SATURDAY RITUAL. Tell me your music, group size and vibe and I’ll pick the night for you.`}if(m.includes('ticket')||m.includes('admission'))return `${ev?`${ev.artist} is the right event based on what you told me. `:''}I can take you straight into ticket selection: General Admission, Fast Entry or VIP Admission, then guest info and payment/QR-ticket handoff.`;if(m.includes('birthday'))return `Absolutely — I can build the birthday from start to finish. ${guests?`For ${guests} guests, `:''}tell me whether you want high energy near the DJ, a VIP view of the room, or something more private — and what budget you want me to stay within.`;if(guests){const match=TABLES.filter(t=>t.status==='available'&&t.guests>=guests&&(!budget||t.minimum<=budget))[0];if(match)return `${match.name} ${match.id} is a strong fit for ${guests}. It holds up to ${match.guests}, carries a $${match.minimum.toLocaleString()} minimum, and is ${match.vibe}. What occasion is this, and do you want bottles waiting when you arrive?`}if(m.includes('bottle')||BOTTLES.some(b=>m.includes(b.toLowerCase())))return `I can build the bottle order into the table reservation. Popular demo choices include Don Julio 1942, Casamigos Reposado, Hennessy, Moët, Veuve and Ace of Spades. Tell me what you want and how many of each.`;return `I can plan the whole night — recommend the event, find a table, build the bottle order, collect the guest details and then take you to the right ticket or table payment step. What night or music are you looking for, and how many are in your group?`}
 
-export async function POST(request: Request) {
-  const body = await request.json();
-  const message = String(body?.message || '').trim();
-  if (!message) return NextResponse.json({ reply: 'Tell me what kind of night you are planning.' });
-
-  const key = process.env.OPENAI_API_KEY;
-  if (!key) return NextResponse.json({ reply: localReply(message), mode: 'demo' });
-
-  try {
-    const response = await fetch('https://api.openai.com/v1/responses', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-      body: JSON.stringify({
-        model: process.env.OPENAI_MODEL || 'gpt-5-mini',
-        instructions: `You are NOIR VIP Concierge for a fictional premium Washington, DC nightlife venue. Be concise, warm, polished, and useful. Never invent availability. Demo table inventory: ${JSON.stringify(TABLES)}. Ask only missing questions needed for a table reservation: date, guest count, occasion, preferred area, budget, guest names when appropriate, bottle preferences, contact info, and deposit readiness. Recommend only options compatible with the provided inventory.`,
-        input: message,
-      }),
-    });
-    if (!response.ok) throw new Error('OpenAI request failed');
-    const data = await response.json();
-    return NextResponse.json({ reply: data.output_text || localReply(message), mode: 'ai' });
-  } catch {
-    return NextResponse.json({ reply: localReply(message), mode: 'demo' });
-  }
+export async function POST(request:Request){
+ const body=await request.json();const message=String(body?.message||'').trim();const history=Array.isArray(body?.history)?body.history.slice(-8):[];if(!message)return NextResponse.json({reply:'Tell me what kind of night you want and I’ll plan it with you.',actions:[]});
+ const key=process.env.OPENAI_API_KEY;if(!key){const reply=localReply(message);return NextResponse.json({reply,actions:actionsFor(message,reply),mode:'demo'})}
+ try{const response=await fetch('https://api.openai.com/v1/responses',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${key}`},body:JSON.stringify({model:process.env.OPENAI_MODEL||'gpt-5-mini',instructions:`You are NOIR VIP Concierge, a polished Washington DC nightlife host. Your job is to plan and CLOSE the guest's night conversationally, not just answer questions. You can recommend events, sell tickets, recommend tables, build bottle service, collect reservation details and move the guest to the correct checkout step. Ask only 1-2 missing questions at a time and never repeat information already provided.\n\nEVENTS: ${JSON.stringify(EVENTS)}\nTABLE INVENTORY: ${JSON.stringify(TABLES)}\nBOTTLE CHOICES: ${JSON.stringify(BOTTLES)}\n\nREAL HOST FLOW: discover date/music/vibe -> party size -> occasion -> tickets vs table -> preferred area -> budget -> recommend event/table -> bottles -> reservation name -> mobile/email -> arrival time -> special requests -> guest names when appropriate -> deposit/payment readiness. If someone is unsure which night, actively recommend the right event from the music/vibe. If someone asks for tickets, guide them toward General Admission, Fast Entry, or VIP Admission and tell them you can take them directly to checkout. If someone wants a table, recommend only AVAILABLE inventory that fits capacity/budget. Never claim a held or reserved table is available. Never invent policies, live pricing beyond the demo data, or a completed payment. When enough details are known, summarize the plan like a real host and say the next step is the ticket checkout or table/deposit checkout. Current selected event: ${String(body?.event||'none')}. Current selected table: ${String(body?.table||'none')}.`,input:[...history.map((h:any)=>({role:h.role==='ai'?'assistant':'user',content:String(h.text||'')})),{role:'user',content:message}]})});if(!response.ok)throw new Error();const data=await response.json();const reply=data.output_text||localReply(message);return NextResponse.json({reply,actions:actionsFor(message,reply),mode:'ai'})}catch{const reply=localReply(message);return NextResponse.json({reply,actions:actionsFor(message,reply),mode:'demo'})}
 }
