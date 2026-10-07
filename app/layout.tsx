@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import './venue-media.css';
 import './mobile-production.css';
@@ -6,7 +6,7 @@ import './mobile-production.css';
 const siteUrl = 'https://bfp-venue-intelligence.vercel.app';
 const shareImage = 'https://images.pexels.com/photos/14528845/pexels-photo-14528845.jpeg?auto=compress&cs=tinysrgb&w=1200&h=630&fit=crop';
 
-export const metadata: Metadata = {
+export const viewport: Viewport = { width: 'device-width', initialScale: 1, maximumScale: 1 };\n\nexport const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: 'NOIR DC — Venue Intelligence Demo',
   description: 'Experience the next generation of nightlife: events, table reservations, bottle service and an AI-powered VIP concierge.',
