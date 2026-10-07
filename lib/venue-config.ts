@@ -10,7 +10,7 @@ export const venueConfig = {
     timezone: 'America/New_York',
     currency: 'USD',
     publicSite: '/',
-    crmLabel: 'CRM CONNECTED',
+    crmLabel: 'GUEST DATA CONNECTED',
     adsLabel: 'ADS CONNECTED',
     socialLabel: 'SOCIAL CONNECTED',
     paymentsLabel: 'PAYMENTS READY'
