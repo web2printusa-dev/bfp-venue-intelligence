@@ -41,7 +41,7 @@ export default function Dashboard(){
  return <main className="dash">
   <aside className="rail">
    <a href="/" className="dashLogo">{venueConfig.brand.name}<span>°</span></a>
-   <div className="railNav"><b>COMMAND CENTER</b>{nav.map(n=><button key={n} className={view===n?'active':''} onClick={()=>setView(n)}>{n}</button>)}</div>
+   <div className="mobileRailTop"><span><i/> VENUE BRAIN ONLINE</span></div><div className="mobileNav"><label>COMMAND CENTER<select value={view} onChange={e=>setView(e.target.value)}>{nav.map(n=><option key={n} value={n}>{n}</option>)}</select></label></div><div className="railNav"><b>COMMAND CENTER</b>{nav.map(n=><button key={n} className={view===n?'active':''} onClick={()=>setView(n)}>{n}</button>)}</div>
    <div className="connections"><span>{venueConfig.operations.crmLabel}</span><span>{venueConfig.operations.adsLabel}</span><span>{venueConfig.operations.socialLabel}</span></div>
    <div className="system"><i/> VENUE BRAIN ONLINE</div>
   </aside>
