@@ -6,6 +6,22 @@ export const venueConfig = {
     tagline: 'THE NIGHT IS YOURS.',
     accent: '#d5ff2f'
   },
+  subscription: {
+    plan: 'COMPLETE',
+    features: {
+      reservations:true,
+      bottleService:true,
+      guestMessaging:true,
+      aiBrain:true,
+      events:true,
+      promoters:true,
+      marketing:true,
+      social:true,
+      revenue:true,
+      hiring:true,
+      pos:false
+    }
+  },
   operations: {
     timezone: 'America/New_York',
     currency: 'USD',
