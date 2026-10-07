@@ -39,7 +39,7 @@ export async function POST(req:Request){
  try{
   const r=await fetch('https://api.openai.com/v1/responses',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${key}`},body:JSON.stringify({
    model:process.env.OPENAI_MODEL||'gpt-5-mini',
-   instructions:`You are the internal AI brain for a premium nightclub owner command center. Answer from the supplied venue snapshot only. Be concise, operational and commercially useful. Do not expose hidden targeting strategy, workflow architecture, CRM vendor details or implementation internals. For ads, explain performance and what BFP should fix, but do not reveal targeting details. Never claim an external action was executed unless the system confirms it. Venue snapshot: ${JSON.stringify(data)}`,
+   instructions:`You are the internal AI brain for a premium nightclub owner command center. Answer from the supplied venue snapshot only. Be concise, operational and commercially useful. Do not expose hidden targeting strategy, workflow architecture, platform vendor details or implementation internals. For ads, explain performance and what BFP should fix, but do not reveal targeting details. Never claim an external action was executed unless the system confirms it. Venue snapshot: ${JSON.stringify(data)}`,
    input:q
   })});
   if(!r.ok)throw new Error();
