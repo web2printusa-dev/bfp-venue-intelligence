@@ -15,9 +15,29 @@ export default function Dashboard(){
  const [action,setAction]=useState<any>(null);
  const [insights,setInsights]=useState<any[]>([]);
  const [brainActions,setBrainActions]=useState<any[]>([]);
- async function ask(text?:string){const v=(text||q).trim();if(!v)return;setQ('');setBusy(true);try{const r=await fetch('/api/brain',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:v})});const d=await r.json();setReply(d.reply);setInsights(Array.isArray(d.insights)?d.insights:[]);setBrainActions(Array.isArray(d.actions)?d.actions:[])}finally{setBusy(false)}}
- async function runCommand(id:string){setAction({title:'RUNNING COMMAND',result:'Working across connected venue systems…',detail:'The command center is processing the requested action.'});try{const r=await fetch('/api/actions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:id})});const d=await r.json();setAction(d)}catch{setAction({title:'ACTION READY',result:'Command prepared',detail:'Connect the venue service to execute this action against live customer data.'})}setTimeout(()=>setAction(null),5200)}
+
+ async function ask(text?:string){
+  const v=(text||q).trim(); if(!v)return;
+  setQ(''); setBusy(true);
+  try{
+   const r=await fetch('/api/brain',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:v})});
+   const d=await r.json();
+   setReply(d.reply); setInsights(Array.isArray(d.insights)?d.insights:[]); setBrainActions(Array.isArray(d.actions)?d.actions:[]);
+  }finally{setBusy(false)}
+ }
+ async function runCommand(id:string){
+  setAction({title:'RUNNING COMMAND',result:'Working across connected venue systems…',detail:'The command center is processing the requested action.'});
+  try{
+   const r=await fetch('/api/actions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:id})});
+   setAction(await r.json());
+  }catch{
+   setAction({title:'ACTION READY',result:'Command prepared',detail:'Connect the venue service to execute this action against live customer data.'});
+  }
+  setTimeout(()=>setAction(null),5200);
+ }
+
  const nav=['Tonight','Reservations','Tables','Guests','Analytics','Marketing','Social','Promoters','Events','Revenue','Hiring'];
+
  return <main className="dash">
   <aside className="rail">
    <a href="/" className="dashLogo">{venueConfig.brand.name}<span>°</span></a>
@@ -25,31 +45,49 @@ export default function Dashboard(){
    <div className="connections"><span>{venueConfig.operations.crmLabel}</span><span>{venueConfig.operations.adsLabel}</span><span>{venueConfig.operations.socialLabel}</span></div>
    <div className="system"><i/> VENUE BRAIN ONLINE</div>
   </aside>
+
   <section className="dashMain">
    <header><div><small>{venueConfig.brand.city.toUpperCase()} / OWNER COMMAND CENTER</small><h1>{view==='Tonight'?'GOOD EVENING.':view.toUpperCase()+'.'}</h1></div><a href="/">VIEW LIVE SITE ↗</a></header>
-   <div className="metrics"><article><small>TABLE MINIMUMS</small><strong>$3,700</strong><span>confirmed + active holds</span></article><article><small>AVAILABLE TABLES</small><strong>04</strong><span>of 6 tables</span></article><article><small>WEEKEND TICKET SALES</small><strong>668</strong><span>across 3 events</span></article><article><small>AD RESULTS</small><strong>65</strong><span>tracked results this week</span></article></div>
+
+   <div className="metrics">
+    <article><small>TABLE MINIMUMS</small><strong>$3,700</strong><span>confirmed + active holds</span></article>
+    <article><small>AVAILABLE TABLES</small><strong>04</strong><span>of 6 tables</span></article>
+    <article><small>WEEKEND TICKET SALES</small><strong>668</strong><span>across 3 events</span></article>
+    <article><small>AD RESULTS</small><strong>65</strong><span>tracked results this week</span></article>
+   </div>
+
    <section className="brain">
     <div className="brainHead"><span>AI</span><div><small>{venueConfig.brand.name} VENUE BRAIN</small><h2>RUN THE VENUE.</h2></div></div>
-    <p className="brainReply">{busy?'Reading the operation…':reply}</p>{insights.length>0&&<div className="brainInsights">{insights.map((i:any)=><article key={i.label}><small>{i.label}</small><strong>{i.value}</strong><span>{i.note}</span></article>)}</div>}{brainActions.length>0&&<div className="brainCommands">{brainActions.map((a:any)=><button key={a.id} onClick={()=>runCommand(a.id)}>{a.label} →</button>)}</div>}
+    <p className="brainReply">{busy?'Reading the operation…':reply}</p>
+    {insights.length>0&&<div className="brainInsights">{insights.map((i:any)=><article key={i.label}><small>{i.label}</small><strong>{i.value}</strong><span>{i.note}</span></article>)}</div>}
+    {brainActions.length>0&&<div className="brainCommands">{brainActions.map((a:any)=><button key={a.id} onClick={()=>runCommand(a.id)}>{a.label} →</button>)}</div>}
     <div className="quick"><button onClick={()=>ask('What could cost me money tonight?')}>What could cost me money?</button><button onClick={()=>ask('Are my ads making me money? Explain it simply.')}>Are my ads making money?</button><button onClick={()=>ask('How do we fill the remaining tables for Saturday?')}>How do we fill Saturday?</button><button onClick={()=>ask('Which promoter is actually making me the most money?')}>Who is my best promoter?</button></div>
     <form onSubmit={e=>{e.preventDefault();ask()}}><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Ask like an owner: Are we making money? What needs fixing? Who should we contact?"/><button>ASK →</button></form>
    </section>
 
    {view==='Tonight'&&<div className="opsGrid"><TablePanel/><BookPanel/></div>}
-   {view==='Tables'&&<section className="panel fullPanel"><Title eyebrow="LIVE FLOOR" title="TABLE INVENTORY" meta="CLIENT VIEW"/>{tables.map(t=><div className="tableRow" key={t[0]}><b>{t[0]}</b><span>{t[1]}</span><button className={'statusBtn '+t[2].toLowerCase()} onClick={()=>ask(`Tell me what I should do with table ${t[0]} which is ${t[2]}`)}>{t[2]}</button><strong>{t[3]}</strong></div>)}</section>}
+
    {view==='Reservations'&&<section className="panel fullPanel"><Title eyebrow="VIP HOST DESK" title="RESERVATIONS" action="AI SUMMARY" onAction={()=>ask('Summarize reservations and next actions')}/>{reservations.map(r=><div className="resCard" key={r[0]}><div><small>{r[0]} · TABLE {r[4]}</small><strong>{r[1]}</strong><span>{r[2]} guests · {r[3]}</span></div><div className="resActions"><em className={r[5].toLowerCase()}>{r[5]}</em><button onClick={()=>ask(`Give me the host brief for ${r[1]}`)}>HOST BRIEF</button></div></div>)}</section>}
+
+   {view==='Tables'&&<section className="panel fullPanel"><Title eyebrow="LIVE FLOOR" title="TABLE INVENTORY" meta="CLIENT VIEW"/>{tables.map(t=><div className="tableRow" key={t[0]}><b>{t[0]}</b><span>{t[1]}</span><button className={'statusBtn '+t[2].toLowerCase()} onClick={()=>ask(`Tell me what I should do with table ${t[0]} which is ${t[2]}`)}>{t[2]}</button><strong>{t[3]}</strong></div>)}</section>}
+
    {view==='Guests'&&<section className="panel fullPanel"><Title eyebrow="GUEST INTELLIGENCE" title="VIP GUESTS" meta="ALL GUEST DATA IN ONE PLACE"/>{guests.map(g=><div className="guestRow" key={g[0]}><strong>{g[0]}</strong><span>{g[1]}</span><span>{g[2]} guests</span><span>Table {g[3]}</span><span>{g[4]}</span><button onClick={()=>ask(`What should the host know about ${g[0]} tonight?`)}>ASK AI</button></div>)}<div className="commandStrip"><button onClick={()=>runCommand('send_vip_sms')}>TEXT VIP LIST</button><button onClick={()=>runCommand('email_birthdays')}>EMAIL BIRTHDAYS</button><button onClick={()=>ask('Show me guests who have not returned recently and are worth reactivating')}>FIND REACTIVATION LIST</button></div></section>}
 
    {view==='Analytics'&&<section className="analyticsPage">
     <div className="analyticsHero"><div><small>OWNER REPORTING</small><h3>VENUE PERFORMANCE</h3><p>A cleaner view of who came, what sold, what converted and where the money came from.</p></div><button className="panelAction" onClick={()=>ask('Give me the owner summary for attendance, reservations, promoter performance and revenue')}>AI OWNER SUMMARY</button></div>
-    <div className="analyticsGrid"><article><small>TOTAL GUESTS</small><strong>842</strong><span>This weekend</span></article><article><small>TABLE RESERVATIONS</small><strong>65</strong><span>Employee + direct bookings</span></article><article><small>PROMOTER RESERVATIONS</small><strong>50</strong><span>Tracked to promoter links</span></article><article><small>CAPACITY</small><strong>88%</strong><span>At peak hour</span></article></div>
-    <div className="analyticsSplit">
-      <section className="panel"><Title eyebrow="GUEST MIX" title="RESERVATION COMPOSITION" meta="THIS WEEK"/><div className="mixBars"><div><span>Women</span><b style={{width:'61%'}}>61%</b></div><div><span>Men</span><b style={{width:'39%'}}>39%</b></div></div><div className="analyticsMini"><span><b>111</b> booked</span><span><b>97</b> arrived</span><span><b>9</b> no-shows</span></div></section>
-      <section className="panel"><Title eyebrow="MONEY" title="SALES SNAPSHOT" meta="POS / PAYMENTS"/><div className="salesBig"><strong>$42,870</strong><span>event-night sales represented</span></div><div className="analyticsMini"><span><b>$18.4K</b> tables</span><span><b>$9.7K</b> bottles</span><span><b>$14.8K</b> bar + other</span></div></section>
+    <div className="analyticsGrid">
+     <article><small>TOTAL GUESTS</small><strong>842</strong><span>This weekend</span></article>
+     <article><small>TABLE RESERVATIONS</small><strong>65</strong><span>Employee + direct bookings</span></article>
+     <article><small>PROMOTER RESERVATIONS</small><strong>50</strong><span>Tracked to promoter links</span></article>
+     <article><small>CAPACITY</small><strong>88%</strong><span>At peak hour</span></article>
     </div>
     <div className="analyticsSplit">
-      <section className="panel"><Title eyebrow="ATTRIBUTION" title="WHAT DROVE BUSINESS" meta="THIS WEEK"/><div className="sourceRows"><p><span>Direct / Venue</span><b>42%</b></p><p><span>Promoters</span><b>31%</b></p><p><span>Paid Ads</span><b>19%</b></p><p><span>VIP Reactivation</span><b>8%</b></p></div></section>
-      <section className="panel"><Title eyebrow="TOP LINE" title="PROMOTER PERFORMANCE" meta="REVENUE"/>{venueConfig.promoters.map(p=><div className="sourceRows promoterAnalytics" key={p.code}><p><span>{p.name}</span><b>{'$'}{p.revenue.toLocaleString()}</b></p></div>)}</section>
+     <section className="panel"><Title eyebrow="GUEST MIX" title="RESERVATION COMPOSITION" meta="THIS WEEK"/><div className="mixBars"><div><span>Women</span><b style={{width:'61%'}}>61%</b></div><div><span>Men</span><b style={{width:'39%'}}>39%</b></div></div><div className="analyticsMini"><span><b>111</b> booked</span><span><b>97</b> arrived</span><span><b>9</b> no-shows</span></div></section>
+     <section className="panel"><Title eyebrow="MONEY" title="SALES SNAPSHOT" meta="POS / PAYMENTS"/><div className="salesBig"><strong>$42,870</strong><span>event-night sales represented</span></div><div className="analyticsMini"><span><b>$18.4K</b> tables</span><span><b>$9.7K</b> bottles</span><span><b>$14.8K</b> bar + other</span></div></section>
+    </div>
+    <div className="analyticsSplit">
+     <section className="panel"><Title eyebrow="ATTRIBUTION" title="WHAT DROVE BUSINESS" meta="THIS WEEK"/><div className="sourceRows"><p><span>Direct / Venue</span><b>42%</b></p><p><span>Promoters</span><b>31%</b></p><p><span>Paid Ads</span><b>19%</b></p><p><span>VIP Reactivation</span><b>8%</b></p></div></section>
+     <section className="panel"><Title eyebrow="TOP LINE" title="PROMOTER PERFORMANCE" meta="REVENUE"/>{venueConfig.promoters.map(p=><div className="sourceRows promoterAnalytics" key={p.code}><p><span>{p.name}</span><b>{'$'}{p.revenue.toLocaleString()}</b></p></div>)}</section>
     </div>
    </section>}
 
@@ -57,39 +95,25 @@ export default function Dashboard(){
 
    {view==='Social'&&<section className="panel fullPanel"><Title eyebrow="CONTENT ENGINE" title="SOCIAL PLANNER" action="UPLOAD CONTENT" onAction={()=>setAction({title:'CONTENT UPLOAD',result:'Media intake opened',detail:'Creative can be uploaded here and routed into the content calendar.'})}/>{venueConfig.social.map(s=><div className="socialRow" key={s.day+s.time+s.event}><div><small>{s.day} · {s.time}</small><strong>{s.event}</strong></div><span>{s.channel}</span><span>{s.type}</span><em>{s.status}</em><button onClick={()=>runCommand('queue_social')}>QUEUE</button></div>)}<div className="commandStrip"><button onClick={()=>ask('Write this week social plan around our three events')}>BUILD WEEK PLAN</button><button onClick={()=>runCommand('caption')}>GENERATE CAPTION</button><button onClick={()=>ask('What is the best time to post our next event content and why?')}>BEST TIME TO POST</button></div></section>}
 
-   {view==='Promoters'&&<section className="panel fullPanel"><Title eyebrow="PROMOTER INTELLIGENCE" title="PROMOTER CENTER" meta="ATTRIBUTION + REVENUE"/>{venueConfig.promoters.map((p,i)=><div className="promoterRow" key={p.code}><b>#{i+1}</b><strong>{p.name}</strong><span>{p.code}</span><span>{p.guests} guests</span><span>{p.tickets} tickets</span><span>{p.tables} tables</span><em>${p.revenue.toLocaleString()}</em><button onClick={()=>ask(`Give me a performance brief for ${p.name}`)}>BRIEF</button></div>)}<div className="commandStrip"><button onClick={()=>ask('Which promoter is performing best and who needs attention?')}>AI PROMOTER REVIEW</button><button onClick={()=>runCommand('notify_promoters')}>NOTIFY PROMOTERS</button></div></section>}
+   {view==='Promoters'&&<section className="panel fullPanel"><Title eyebrow="PROMOTER INTELLIGENCE" title="PROMOTER CENTER" meta="ATTRIBUTION + REVENUE"/>{venueConfig.promoters.map((p,i)=><div className="promoterRow" key={p.code}><b>#{i+1}</b><strong>{p.name}</strong><span>{p.code}</span><span>{p.guests} guests</span><span>{p.tickets} tickets</span><span>{p.tables} tables</span><em>{'$'}{p.revenue.toLocaleString()}</em><button onClick={()=>ask(`Give me a performance brief for ${p.name}`)}>BRIEF</button></div>)}<div className="commandStrip"><button onClick={()=>ask('Which promoter is performing best and who needs attention?')}>AI PROMOTER REVIEW</button><button onClick={()=>runCommand('notify_promoters')}>NOTIFY PROMOTERS</button></div></section>}
 
-   {view==='Events'&&<section className="fullPanel"><div className="eventOpsHead"><div><small>ONE EVENT → EVERY CHANNEL</small><h3>EVENT BUILDER</h3><p>Create once, then push the event into the website, ticketing, guest messaging, social and promoter workflows.</p></div><button className="panelAction" onClick={()=>setAction({title:'EVENT BUILDER',result:'New event workflow opened',detail:'Create the event once, then publish it across the website, guest messaging, social calendar and promoter workflows.'})}>+ CREATE EVENT</button></div><div className="eventOpsGrid">{venueConfig.events.map(e=><article className="eventOpsCard" key={e.id}><small>{e.date} · {e.music}</small><h4>{e.name}</h4><div><span><b>{e.ticketsSold}</b> tickets</span><span><b>${e.ticketRevenue.toLocaleString()}</b> revenue</span><span><b>{e.tableInquiries}</b> table inquiries</span></div><button onClick={()=>ask(`Give me a promotion plan for ${e.name}`)}>ASK BRAIN FOR PLAN →</button></article>)}</div></section>}
-
-   {view==='Hiring'&&<section className="panel fullPanel"><Title eyebrow="TEAM OPERATIONS" title="APPLICATIONS" meta="HIRING INBOX"/>{applicants.map(a=><div className="applicantRow" key={a[0]}><div><small>{a[0]}</small><strong>{a[1]}</strong></div><span>{a[2]}</span><span>{a[3]}</span><em className={a[4].toLowerCase()}>{a[4]}</em><button onClick={()=>ask(`Summarize the job-related experience and availability for ${a[1]} without recommending whether to hire them`)}>AI SUMMARY</button></div>)}<div className="commandStrip"><a className="panelAction" href="/careers">VIEW APPLICATION PAGE ↗</a></div></section>}
+   {view==='Events'&&<section className="fullPanel"><div className="eventOpsHead"><div><small>ONE EVENT → EVERY CHANNEL</small><h3>EVENT BUILDER</h3><p>Create once, then push the event into the website, ticketing, guest messaging, social and promoter workflows.</p></div><button className="panelAction" onClick={()=>setAction({title:'EVENT BUILDER',result:'New event workflow opened',detail:'Create the event once, then publish it across the website, guest messaging, social calendar and promoter workflows.'})}>+ CREATE EVENT</button></div><div className="eventOpsGrid">{venueConfig.events.map(e=><article className="eventOpsCard" key={e.id}><small>{e.date} · {e.music}</small><h4>{e.name}</h4><div><span><b>{e.ticketsSold}</b> tickets</span><span><b>{'$'}{e.ticketRevenue.toLocaleString()}</b> revenue</span><span><b>{e.tableInquiries}</b> table inquiries</span></div><button onClick={()=>ask(`Give me a promotion plan for ${e.name}`)}>ASK BRAIN FOR PLAN →</button></article>)}</div></section>}
 
    {view==='Revenue'&&<section className="revenueGrid"><article className="revenueCard"><small>REPRESENTED TABLE MINIMUMS</small><strong>$3,700</strong><span>Confirmed + active holds</span></article><article className="revenueCard"><small>WEEKEND TICKETS</small><strong>$26.7K</strong><span>Gross ticket revenue</span></article><article className="revenueCard"><small>TOP PROMOTER REVENUE</small><strong>$9.2K</strong><span>Attributed to J. Prince</span></article><section className="panel revenueBrain"><Title eyebrow="AI REVENUE DESK" title="WHAT SHOULD WE PUSH?"/><p>Use the venue brain to find where money is being left on the table and what the team should do next.</p><button className="panelAction" onClick={()=>ask('Based on tonight and this weekend, what should we push to maximize revenue?')}>ASK FOR REVENUE PLAN →</button></section></section>}
+
+   {view==='Hiring'&&<section className="panel fullPanel"><Title eyebrow="TEAM OPERATIONS" title="APPLICATIONS" meta="HIRING INBOX"/>{applicants.map(a=><div className="applicantRow" key={a[0]}><div><small>{a[0]}</small><strong>{a[1]}</strong></div><span>{a[2]}</span><span>{a[3]}</span><em className={a[4].toLowerCase()}>{a[4]}</em><button onClick={()=>ask(`Summarize the job-related experience and availability for ${a[1]} without recommending whether to hire them`)}>AI SUMMARY</button></div>)}<div className="commandStrip"><a className="panelAction" href="/careers">VIEW APPLICATION PAGE ↗</a></div></section>}
 
    {action&&<div className="actionToast"><b>{action.title||'COMMAND RESULT'}</b><span>{action.result||'Action completed'}</span><small>{action.detail||'The venue command was processed.'}</small></div>}
   </section>
  </main>
 }
-function Title({eyebrow,title,meta,action,onAction}:{eyebrow:string,title:string,meta?:string,action?:string,onAction?:()=>void}){return <div className="panelTitle"><div><small>{eyebrow}</small><h3>{title}</h3></div>{action?<button className="panelAction" onClick={onAction}>{action}</button>:<span>{meta}</span>}</div>}
-function TablePanel(){return <section className="panel"><Title eyebrow="LIVE FLOOR" title="TABLE STATUS" meta="6 TABLES"/>{tables.map(t=><div className="tableRow" key={t[0]}><b>{t[0]}</b><span>{t[1]}</span><em className={t[2].toLowerCase()}>{t[2]}</em><strong>{t[3]}</strong></div>)}</section>}
-function BookPanel(){return <section className="panel"><Title eyebrow="VIP HOST DESK" title="TONIGHT'S BOOK" meta="LIVE BOOK"/>{reservations.map(r=><div className="resCard" key={r[0]}><div><small>{r[0]} · TABLE {r[4]}</small><strong>{r[1]}</strong><span>{r[2]} guests · {r[3]}</span></div><em className={r[5].toLowerCase()}>{r[5]}</em></div>)}<div className="activity"><small>AUTOMATION STATUS</small><p>✓ Guest profile captured</p><p>✓ VIP host notification ready</p><p>✓ Confirmation + reminders queued</p><p>○ POS / table platform adapter ready</p></div></section>}
-}{p.revenue.toLocaleString()}</b></p></div>)}</section></div></section>}
 
-   {view==='Marketing'&&<section className="fullPanel"><div className="marketingTop"><div><small>PERFORMANCE ONLY</small><h3>ADS PERFORMANCE</h3><p>Your team manages targeting and optimization behind the scenes. The venue sees results, what BFP is changing, and what improved.</p></div><button className="panelAction" onClick={()=>ask('Explain the ads in plain English: what is making money, what is wasting money, and what BFP should fix next')}>EXPLAIN WHAT'S WORKING</button></div><div className="adGrid">{venueConfig.ads.map(a=><article className="adCard" key={a.name}><div className="adCardTop"><small>{a.status}</small><strong>{a.name}</strong></div><div className="adMetrics"><span><b>${a.spend}</b><small>SPEND</small></span><span><b>{a.leads}</b><small>RESULTS</small></span><span><b>{a.tableInquiries}</b><small>TABLE LEADS</small></span><span><b>{a.ticketSales}</b><small>TICKET SALES</small></span></div><div className="optimization"><b>{a.trend}</b><span>BFP OPTIMIZATION</span><p>{a.status==='REVIEW'?'Creative fatigue detected. BFP will refresh creative and rebalance spend.':'Performing well. BFP is protecting spend and scaling the winning creative.'}</p></div></article>)}</div></section>}
-
-   {view==='Social'&&<section className="panel fullPanel"><Title eyebrow="CONTENT ENGINE" title="SOCIAL PLANNER" action="UPLOAD CONTENT" onAction={()=>setAction({title:'CONTENT UPLOAD',result:'Media intake opened',detail:'Creative can be uploaded here and routed into the content calendar.'})}/>{venueConfig.social.map(s=><div className="socialRow" key={s.day+s.time+s.event}><div><small>{s.day} · {s.time}</small><strong>{s.event}</strong></div><span>{s.channel}</span><span>{s.type}</span><em>{s.status}</em><button onClick={()=>runCommand('queue_social')}>QUEUE</button></div>)}<div className="commandStrip"><button onClick={()=>ask('Write this week social plan around our three events')}>BUILD WEEK PLAN</button><button onClick={()=>runCommand('caption')}>GENERATE CAPTION</button><button onClick={()=>ask('What is the best time to post our next event content and why?')}>BEST TIME TO POST</button></div></section>}
-
-   {view==='Promoters'&&<section className="panel fullPanel"><Title eyebrow="PROMOTER INTELLIGENCE" title="PROMOTER CENTER" meta="ATTRIBUTION + REVENUE"/>{venueConfig.promoters.map((p,i)=><div className="promoterRow" key={p.code}><b>#{i+1}</b><strong>{p.name}</strong><span>{p.code}</span><span>{p.guests} guests</span><span>{p.tickets} tickets</span><span>{p.tables} tables</span><em>${p.revenue.toLocaleString()}</em><button onClick={()=>ask(`Give me a performance brief for ${p.name}`)}>BRIEF</button></div>)}<div className="commandStrip"><button onClick={()=>ask('Which promoter is performing best and who needs attention?')}>AI PROMOTER REVIEW</button><button onClick={()=>runCommand('notify_promoters')}>NOTIFY PROMOTERS</button></div></section>}
-
-   {view==='Events'&&<section className="fullPanel"><div className="eventOpsHead"><div><small>ONE EVENT → EVERY CHANNEL</small><h3>EVENT BUILDER</h3><p>Create once, then push the event into the website, ticketing, guest messaging, social and promoter workflows.</p></div><button className="panelAction" onClick={()=>setAction({title:'EVENT BUILDER',result:'New event workflow opened',detail:'Create the event once, then publish it across the website, guest messaging, social calendar and promoter workflows.'})}>+ CREATE EVENT</button></div><div className="eventOpsGrid">{venueConfig.events.map(e=><article className="eventOpsCard" key={e.id}><small>{e.date} · {e.music}</small><h4>{e.name}</h4><div><span><b>{e.ticketsSold}</b> tickets</span><span><b>${e.ticketRevenue.toLocaleString()}</b> revenue</span><span><b>{e.tableInquiries}</b> table inquiries</span></div><button onClick={()=>ask(`Give me a promotion plan for ${e.name}`)}>ASK BRAIN FOR PLAN →</button></article>)}</div></section>}
-
-   {view==='Hiring'&&<section className="panel fullPanel"><Title eyebrow="TEAM OPERATIONS" title="APPLICATIONS" meta="HIRING INBOX"/>{applicants.map(a=><div className="applicantRow" key={a[0]}><div><small>{a[0]}</small><strong>{a[1]}</strong></div><span>{a[2]}</span><span>{a[3]}</span><em className={a[4].toLowerCase()}>{a[4]}</em><button onClick={()=>ask(`Summarize the job-related experience and availability for ${a[1]} without recommending whether to hire them`)}>AI SUMMARY</button></div>)}<div className="commandStrip"><a className="panelAction" href="/careers">VIEW APPLICATION PAGE ↗</a></div></section>}
-
-   {view==='Revenue'&&<section className="revenueGrid"><article className="revenueCard"><small>REPRESENTED TABLE MINIMUMS</small><strong>$3,700</strong><span>Confirmed + active holds</span></article><article className="revenueCard"><small>WEEKEND TICKETS</small><strong>$26.7K</strong><span>Gross ticket revenue</span></article><article className="revenueCard"><small>TOP PROMOTER REVENUE</small><strong>$9.2K</strong><span>Attributed to J. Prince</span></article><section className="panel revenueBrain"><Title eyebrow="AI REVENUE DESK" title="WHAT SHOULD WE PUSH?"/><p>Use the venue brain to find where money is being left on the table and what the team should do next.</p><button className="panelAction" onClick={()=>ask('Based on tonight and this weekend, what should we push to maximize revenue?')}>ASK FOR REVENUE PLAN →</button></section></section>}
-
-   {action&&<div className="actionToast"><b>{action.title||'COMMAND RESULT'}</b><span>{action.result||'Action completed'}</span><small>{action.detail||'The venue command was processed.'}</small></div>}
-  </section>
- </main>
+function Title({eyebrow,title,meta,action,onAction}:{eyebrow:string,title:string,meta?:string,action?:string,onAction?:()=>void}){
+ return <div className="panelTitle"><div><small>{eyebrow}</small><h3>{title}</h3></div>{action?<button className="panelAction" onClick={onAction}>{action}</button>:<span>{meta}</span>}</div>
 }
-function Title({eyebrow,title,meta,action,onAction}:{eyebrow:string,title:string,meta?:string,action?:string,onAction?:()=>void}){return <div className="panelTitle"><div><small>{eyebrow}</small><h3>{title}</h3></div>{action?<button className="panelAction" onClick={onAction}>{action}</button>:<span>{meta}</span>}</div>}
-function TablePanel(){return <section className="panel"><Title eyebrow="LIVE FLOOR" title="TABLE STATUS" meta="6 TABLES"/>{tables.map(t=><div className="tableRow" key={t[0]}><b>{t[0]}</b><span>{t[1]}</span><em className={t[2].toLowerCase()}>{t[2]}</em><strong>{t[3]}</strong></div>)}</section>}
-function BookPanel(){return <section className="panel"><Title eyebrow="VIP HOST DESK" title="TONIGHT'S BOOK" meta="LIVE BOOK"/>{reservations.map(r=><div className="resCard" key={r[0]}><div><small>{r[0]} · TABLE {r[4]}</small><strong>{r[1]}</strong><span>{r[2]} guests · {r[3]}</span></div><em className={r[5].toLowerCase()}>{r[5]}</em></div>)}<div className="activity"><small>AUTOMATION STATUS</small><p>✓ Guest profile captured</p><p>✓ VIP host notification ready</p><p>✓ Confirmation + reminders queued</p><p>○ POS / table platform adapter ready</p></div></section>}
+function TablePanel(){
+ return <section className="panel"><Title eyebrow="LIVE FLOOR" title="TABLE STATUS" meta="6 TABLES"/>{tables.map(t=><div className="tableRow" key={t[0]}><b>{t[0]}</b><span>{t[1]}</span><em className={t[2].toLowerCase()}>{t[2]}</em><strong>{t[3]}</strong></div>)}</section>
+}
+function BookPanel(){
+ return <section className="panel"><Title eyebrow="VIP HOST DESK" title="TONIGHT'S BOOK" meta="LIVE BOOK"/>{reservations.map(r=><div className="resCard" key={r[0]}><div><small>{r[0]} · TABLE {r[4]}</small><strong>{r[1]}</strong><span>{r[2]} guests · {r[3]}</span></div><em className={r[5].toLowerCase()}>{r[5]}</em></div>)}<div className="activity"><small>AUTOMATION STATUS</small><p>✓ Guest profile captured</p><p>✓ VIP host notification ready</p><p>✓ Confirmation + reminders queued</p><p>○ POS / table platform adapter ready</p></div></section>
+}
