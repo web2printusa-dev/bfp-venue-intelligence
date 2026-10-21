@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import './venue-media.css';
 import './mobile-production.css';
+import './202-content.css';
 
 const siteUrl = 'https://bfp-venue-os-202-lounge.vercel.app';
 const shareImage = 'https://images.pexels.com/photos/14528845/pexels-photo-14528845.jpeg?auto=compress&cs=tinysrgb&w=1200&h=630&fit=crop';
@@ -36,3 +37,4 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     </html>
   );
 }
+
