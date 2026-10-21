@@ -6,7 +6,9 @@ import './mobile-production.css';
 const siteUrl = 'https://bfp-venue-os-202-lounge.vercel.app';
 const shareImage = 'https://images.pexels.com/photos/14528845/pexels-photo-14528845.jpeg?auto=compress&cs=tinysrgb&w=1200&h=630&fit=crop';
 
-export const viewport: Viewport = { width: 'device-width', initialScale: 1, maximumScale: 1 };\n\nexport const metadata: Metadata = {
+export const viewport: Viewport = { width: 'device-width', initialScale: 1, maximumScale: 1 };
+
+export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: '202 Lounge — Venue Intelligence Demo',
   description: 'Experience the next generation of nightlife: events, table reservations, bottle service and an AI-powered VIP concierge.',
