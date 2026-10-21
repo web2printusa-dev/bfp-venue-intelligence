@@ -22,3 +22,10 @@ Package flyers do not state whether tax/gratuity are included, how tax is calcul
 RSVP buttons use the exact Eventbrite addresses printed on the supplied flyers. Other nights use an admission inquiry by text. Table flow builds a date/floor/table/package/guest request and opens the user's SMS composer; it does not send a message, reserve stock, collect payment, or claim confirmation. The concierge uses the same data and provides the existing configured AI provider with those facts when available.
 
 This client preview has no gender quota. Club-wide update distribution and live inventory/payment/CRM integration are separate outstanding work.
+
+
+## October 21 weekly flyer update
+- IMG_2557.jpeg → `/202/tuesdays-main.webp`: weekly Tuesday main card; game night / R&B, doors 6 PM–2 AM, happy hour 6–11 PM, $2 Luna shots / $2 tacos / $35 hookah, $250 all-in premium bottles. RSVP `https://2tuesdays202.eventbrite.com`. Keep the separate birthday flyer and package; do not apply the main flyer's “all-in” wording to birthday package fee calculations.
+- IMG_2558.jpeg → `/202/karaoke-thursdays.webp`: new weekly Thursday card and date options. 20 wings + 4 shots and fries $50; 50 wings + 10 shots and fries $100; 10 wings + 4 Luna shots $35. RSVP `https://karaokethursdays202.eventbrite.com`. Hours and admission price are not stated. Table packages remain host quotes.
+- IMG_2559.jpeg → `/202/saturdays-main.webp`: regular Saturday main card, doors 8 PM. Existing weekend package flyer remains in the package flow.
+- October 24 Trektober feature, placement, fixed date and flyer remain unchanged. It still overrides the regular Saturday occurrence on that date.
