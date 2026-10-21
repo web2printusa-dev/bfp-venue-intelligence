@@ -145,3 +145,7 @@
 .clubSite .heroActions .heroPrimary:hover,.clubSite .heroReserve>button:hover{background:#e0ff70!important;border-color:#e0ff70!important}
 
 @media(min-width:1101px){.clubSite .clubEvents .eventGrid{grid-template-columns:repeat(5,minmax(0,1fr))}}
+
+/* Highlight event table booking actions in the same reservation green. */
+.clubSite .eventButtons button:last-child{background:#d4ff31!important;border-color:#d4ff31!important;color:#11150a!important}
+.clubSite .eventButtons button:last-child:hover{background:#e0ff70!important;border-color:#e0ff70!important}
