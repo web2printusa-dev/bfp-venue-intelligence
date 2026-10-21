@@ -1,9 +1,9 @@
 export const venueConfig = {
   brand: {
-    name: 'NOIR',
-    legalName: 'NOIR DC',
+    name: '202',
+    legalName: '202 Lounge',
     city: 'Washington, DC',
-    tagline: 'THE NIGHT IS YOURS.',
+    tagline: 'CHINATOWN AFTER DARK.',
     accent: '#d5ff2f'
   },
   subscription: {
@@ -32,19 +32,19 @@ export const venueConfig = {
     paymentsLabel: 'PAYMENTS READY'
   },
   events: [
-    {id:'evt-1009',date:'OCT 09',name:'MIDNIGHT / AFTER DARK',music:'OPEN FORMAT',ticketsSold:184,ticketRevenue:7360,tableInquiries:11},
-    {id:'evt-1010',date:'OCT 10',name:'SAINT NOIR',music:'HIP-HOP',ticketsSold:263,ticketRevenue:10520,tableInquiries:19},
-    {id:'evt-1011',date:'OCT 11',name:'THE SATURDAY RITUAL',music:'R&B · HIP-HOP',ticketsSold:221,ticketRevenue:8840,tableInquiries:16}
+    {id:'evt-tue',date:'TUE',name:'$2 TUESDAYS',music:'6 PM – 2 AM',ticketsSold:148,ticketRevenue:4260,tableInquiries:13},
+    {id:'evt-wcw',date:'WED',name:'WCW WEDNESDAYS',music:'FREE DINNER · HAPPY HOUR',ticketsSold:176,ticketRevenue:5380,tableInquiries:17},
+    {id:'evt-sat',date:'SAT',name:'202 SATURDAYS',music:'10 PM – 3 AM',ticketsSold:284,ticketRevenue:11420,tableInquiries:24}
   ],
   ads: [
-    {name:'SAINT NOIR — VIDEO 01',status:'ACTIVE',spend:487,leads:36,tableInquiries:11,ticketSales:24,costPerResult:13.53,trend:'+18%'},
-    {name:'SATURDAY RITUAL — STORY',status:'ACTIVE',spend:318,leads:21,tableInquiries:7,ticketSales:15,costPerResult:15.14,trend:'+9%'},
-    {name:'MIDNIGHT — RETARGETING',status:'REVIEW',spend:194,leads:8,tableInquiries:2,ticketSales:5,costPerResult:24.25,trend:'-12%'}
+    {name:'202 SATURDAYS — VIDEO',status:'ACTIVE',spend:487,leads:36,tableInquiries:11,ticketSales:24,costPerResult:13.53,trend:'+18%'},
+    {name:'WCW — STORY',status:'ACTIVE',spend:318,leads:21,tableInquiries:7,ticketSales:15,costPerResult:15.14,trend:'+9%'},
+    {name:'$2 TUESDAYS — VIDEO',status:'REVIEW',spend:194,leads:8,tableInquiries:2,ticketSales:5,costPerResult:24.25,trend:'-12%'}
   ],
   social: [
-    {day:'WED',time:'6:30 PM',channel:'INSTAGRAM',type:'REEL',event:'SAINT NOIR',status:'SCHEDULED'},
-    {day:'THU',time:'12:00 PM',channel:'INSTAGRAM + FACEBOOK',type:'STORY',event:'MIDNIGHT / AFTER DARK',status:'SCHEDULED'},
-    {day:'FRI',time:'3:00 PM',channel:'INSTAGRAM',type:'POST',event:'THE SATURDAY RITUAL',status:'DRAFT'}
+    {day:'MON',time:'6:30 PM',channel:'INSTAGRAM + FACEBOOK',type:'REEL',event:'$2 TUESDAYS',status:'SCHEDULED'},
+    {day:'TUE',time:'5:00 PM',channel:'INSTAGRAM',type:'STORY',event:'WCW WEDNESDAYS',status:'SCHEDULED'},
+    {day:'FRI',time:'3:00 PM',channel:'INSTAGRAM + FACEBOOK',type:'POST',event:'202 SATURDAYS',status:'DRAFT'}
   ],
   promoters: [
     {name:'J. Prince',code:'JPDC',guests:84,tickets:31,tables:4,revenue:9200},
