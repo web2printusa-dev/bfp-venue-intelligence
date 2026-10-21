@@ -1,13 +1,13 @@
 // 202 Lounge content from the flyers supplied on October 21, 2026.
 // Club-specific content: the demo's policies and prices are not changed.
-export type ClubEvent = { id:string; artist:string; day:string; dayIndex:number; month:string; image:string; note:string; admission:string; time:string; rsvp:string|null; fixedDate?:string; details:string[] };
+export type ClubEvent = { id:string; artist:string; day:string; dayIndex:number; month:string; image:string; note:string; admission:string; time:string; rsvp:string|null; opensAt:number|null; fixedDate?:string; details:string[] };
 export const events:ClubEvent[] = [
- {id:'tuesday',artist:'$2 TUESDAYS',day:'TUE',dayIndex:2,month:'WEEKLY',image:'/202/tuesdays-main.webp',note:'GAME NIGHT · R&B · TACOS & TEQUILA',admission:'RSVP through Eventbrite; admission terms are confirmed by the organizer',time:'Doors 6 PM–2 AM · happy hour 6–11 PM',rsvp:'https://2tuesdays202.eventbrite.com',details:['Game night and R&B happy hour: Jenga, Monopoly, Connect 4 and checkers.','Happy hour 6–11 PM: $2 Luna shots, $2 tacos and $35 hookah.','Doors open 6 PM–2 AM.','Main flyer advertises $250 all-in premium bottles; confirm eligible bottles and inclusions with the host.','Separate birthday offer: $250 for a premium bottle, champagne and birthday flyer; birthday flyer shows 9 PM–3 AM.']},
- {id:'wcw',artist:'WOMEN CRUSH WEDNESDAYS',day:'WED',dayIndex:3,month:'WEEKLY',image:'/202/wcw.webp',note:'FREE DINNER 8–11 PM WITH DRINK PURCHASE',admission:'Everyone free with RSVP',time:'Dinner: 8–11 PM',rsvp:'https://womencrushwed202.eventbrite.com',details:['Free dinner from 8–11 PM with purchase of a drink.','Everyone free with RSVP.','Text CRUSH to 545454 for RSVP.']},
- {id:'thursday',artist:'KARAOKE THURSDAYS',day:'THU',dayIndex:4,month:'WEEKLY',image:'/202/karaoke-thursdays.webp',note:'KARAOKE · WINGS & SHOT SPECIALS',admission:'RSVP through Eventbrite; admission terms are confirmed by the organizer',time:'Contact the host for Thursday hours',rsvp:'https://karaokethursdays202.eventbrite.com',details:['20 wings + 4 shots and fries: $50.','50 wings + 10 shots and fries: $100.','10 wings + 4 shots of Luna: $35.','Call 202-520-9070 for table RSVP.','The flyer does not state opening hours or an admission price.']},
- {id:'friday',artist:'VIRAL MOTION FRIDAYS',day:'FRI',dayIndex:5,month:'WEEKLY',image:'/202/motion-fridays.webp',note:'FREE BEFORE MIDNIGHT WITH RSVP',admission:'Everyone free before midnight with RSVP',time:'Doors open 8 PM',rsvp:'https://motionfriday.eventbrite.com',details:['Doors open at 8 PM.','Everyone free before midnight with RSVP.','Dress code enforced.']},
- {id:'saturday',artist:'202 SATURDAYS',day:'SAT',dayIndex:6,month:'WEEKLY',image:'/202/saturdays-main.webp',note:'SATURDAY NIGHT AT 202 · DOORS 8 PM',admission:'Admission included for 4, 6 or 8 with the published package',time:'Doors open 8 PM',rsvp:null,details:['Weekly Saturday flyer: doors open at 8 PM.','Table packages: $400 / $750 / $1,000.','Package admission covers 4 / 6 / 8 guests respectively.','For standalone admission, contact the host.']},
- {id:'trektober',artist:'TrickTober · 202 SATURDAYS',day:'SAT',dayIndex:6,month:'OCT 24',fixedDate:'2026-10-24',image:'/202/trektober-oct24.webp',note:'SPECIAL EVENT · OCTOBER 24',admission:'Contact the host for event admission',time:'Doors open 8 PM · 21+ with proper ID',rsvp:null,details:['Saturday, October 24, 2026.','Doors open at 8 PM.','21+ · Proper ID required.','The flyer does not list an admission price. Table packages and availability are confirmed by the host for this special event.']},
+ {id:'tuesday',artist:'$2 TUESDAYS',day:'TUE',dayIndex:2,month:'WEEKLY',image:'/202/tuesdays-main.webp',note:'GAME NIGHT · R&B · TACOS & TEQUILA',admission:'Online RSVP coming soon',time:'Doors 6 PM–2 AM · happy hour 6–11 PM',rsvp:null,opensAt:18,details:['Game night and R&B happy hour: Jenga, Monopoly, Connect 4 and checkers.','Happy hour 6–11 PM: $2 Luna shots, $2 tacos and $35 hookah.','Doors open 6 PM–2 AM.','Main flyer advertises $250 all-in premium bottles; confirm eligible bottles and inclusions with the host.','Separate birthday offer: $250 for a premium bottle, champagne and birthday flyer; birthday flyer shows 9 PM–3 AM.']},
+ {id:'wcw',artist:'WOMEN CRUSH WEDNESDAYS',day:'WED',dayIndex:3,month:'WEEKLY',image:'/202/wcw.webp',note:'FREE DINNER 8–11 PM WITH DRINK PURCHASE',admission:'Everyone free with RSVP',time:'Dinner: 8–11 PM',rsvp:null,opensAt:null,details:['Free dinner from 8–11 PM with purchase of a drink.','Everyone free with RSVP.','Online RSVP will be available here soon.']},
+ {id:'thursday',artist:'KARAOKE THURSDAYS',day:'THU',dayIndex:4,month:'WEEKLY',image:'/202/karaoke-thursdays.webp',note:'KARAOKE · WINGS & SHOT SPECIALS',admission:'Online RSVP coming soon',time:'Contact the host for Thursday hours',rsvp:null,opensAt:null,details:['20 wings + 4 shots and fries: $50.','50 wings + 10 shots and fries: $100.','10 wings + 4 shots of Luna: $35.','Call 202-520-9070 for table RSVP.','The flyer does not state opening hours or an admission price.']},
+ {id:'friday',artist:'VIRAL MOTION FRIDAYS',day:'FRI',dayIndex:5,month:'WEEKLY',image:'/202/motion-fridays.webp',note:'FREE BEFORE MIDNIGHT WITH RSVP',admission:'Everyone free before midnight with RSVP',time:'Doors open 8 PM',rsvp:null,opensAt:20,details:['Doors open at 8 PM.','Everyone free before midnight with RSVP.','Dress code enforced.']},
+ {id:'saturday',artist:'202 SATURDAYS',day:'SAT',dayIndex:6,month:'WEEKLY',image:'/202/saturdays-main.webp',note:'SATURDAY NIGHT AT 202 · DOORS 8 PM',admission:'Admission included for 4, 6 or 8 with the published package',time:'Doors open 8 PM',rsvp:null,opensAt:20,details:['Weekly Saturday flyer: doors open at 8 PM.','Table packages: $400 / $750 / $1,000.','Package admission covers 4 / 6 / 8 guests respectively.','For standalone admission, contact the host.']},
+ {id:'trektober',artist:'TrickTober · 202 SATURDAYS',day:'SAT',dayIndex:6,month:'OCT 24',fixedDate:'2026-10-24',image:'/202/trektober-oct24.webp',note:'SPECIAL EVENT · OCTOBER 24',admission:'Contact the host for event admission',time:'Doors open 8 PM · 21+ with proper ID',rsvp:null,opensAt:20,details:['Saturday, October 24, 2026.','Doors open at 8 PM.','21+ · Proper ID required.','The flyer does not list an admission price. Table packages and availability are confirmed by the host for this special event.']},
 ];
 export type Occurrence={key:string;date:string;label:string;event:ClubEvent};
 export function upcomingOccurrences(now=new Date()):Occurrence[]{
@@ -38,7 +38,7 @@ export const birthdayPackage:ClubPackage={id:'tuesday-birthday',name:'Tuesday bi
 export const customPackage:ClubPackage={id:'custom',name:'Choose individual bottles',price:null,bottles:null,guests:null,description:'Pick bottles from the menu. Table minimums and final charges are confirmed before payment.'};
 export function packagesFor(event:ClubEvent,floor:number):ClubPackage[]{
  if(event.id==='tuesday')return [birthdayPackage,customPackage];
- if(['friday','saturday','trektober'].includes(event.id))return [...(floor===2?auraPackages:weekendPackages),customPackage];
+ if(['friday','saturday'].includes(event.id))return [...(floor===2?auraPackages:weekendPackages),customPackage];
  return [customPackage];
 }
 export const bottles=[
@@ -56,3 +56,15 @@ export const tables:ClubTable[]=[
 ];
 export const contact={phone:'202-520-9070',sms:'2025209070',secondary:'301-455-9579'};
 export const money=(n:number)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:2}).format(n);
+
+// Times after midnight still belong to the selected event night.
+export function arrivalOptions(event:ClubEvent):{value:string;label:string}[]{
+ if(event.opensAt===null)return [];
+ const options=[];
+ for(let minutes=event.opensAt*60;minutes<=25*60;minutes+=30){
+  const hour=Math.floor(minutes/60)%24,minute=minutes%60;
+  options.push({value:`${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')}`,label:`${hour%12||12}:${String(minute).padStart(2,'0')} ${hour<12?'AM':'PM'}`});
+ }
+ return options;
+}
+export const maxReservationGuests=8;

@@ -224,3 +224,15 @@
 @media(max-width:1100px){.clubSite .bookingStage{grid-template-columns:1fr;gap:24px}.clubSite .inventory{padding-top:0}.clubSite .bookingControls>label{max-width:none}.clubSite .floorTabs{align-self:stretch}.clubSite .floorTabs button{flex:1}.clubSite .inventory .reservationSteps{grid-template-columns:repeat(3,1fr);gap:18px}.clubSite .inventory .reservationSteps span{align-items:flex-start;line-height:1.5}}
 @media(max-width:800px){.clubSite .venueAbout{gap:30px}.clubSite .aboutStory>p{font-size:16px;margin-bottom:26px}.clubSite .venueStats{gap:16px}.clubSite .venueStats>div{gap:12px}.clubSite .venueStats strong{font-size:64px}.clubSite .venueStats>div>span{font-size:12px}.clubSite .venueStats span span{font-size:12px}.clubSite .clubEvents .sectionHead h2{font-size:clamp(42px,11vw,68px)}.clubSite .bookingIntro{padding-top:40px}.clubSite .bookingControls{padding:22px 0}.clubSite .floorTabs button{font-size:14px;line-height:1.4}.clubSite .bookingStage{gap:28px}.clubSite .mapPanel{padding-top:26px}.clubSite .floorHeading h3{font-size:40px}.clubSite .inventory .reservationSteps{grid-template-columns:1fr;gap:0}.clubSite footer{display:block}.clubSite .clubDialog h2 small{font-size:12px;line-height:1.5}}
 .clubSite .composer button{background:var(--club-action);color:#11150a}
+
+.clubSite .tableCta{background:#d4ff31!important;border:1px solid #d4ff31!important;color:#11150a!important}
+.clubSite .tableCta:hover{background:#e0ff70!important;border-color:#e0ff70!important}
+.clubSite .changeNight{min-height:48px;padding:12px 18px;background:#171b12;color:#fff;border:1px solid #81934d;font-size:14px;align-self:flex-end}
+.clubSite .chooseNightPrompt{padding:54px 28px;margin-top:28px;border:1px solid #414b2b;border-radius:16px;background:#14170f;text-align:center}
+.clubSite .chooseNightPrompt>span{font-size:12px;letter-spacing:.12em;color:#d4ff31}
+.clubSite .chooseNightPrompt h3{font:600 38px/1.1 'Barlow Condensed',Arial,sans-serif;margin:16px 0}
+.clubSite .chooseNightPrompt p{font-size:16px;line-height:1.7;color:#c7ccb9;margin:0}
+.clubSite .rsvpPending{border:1px solid #bbc5a0;border-radius:10px;padding:18px;margin:0;background:#f1f5e6;font-size:15px;color:#344118}
+.clubSite .heroReserve select:has(option[value=""]:checked){color:#d4ff31}
+.clubSite .guestCheckout select:disabled{opacity:1;background:#e7e8df!important;color:#5a6050!important}
+@media(max-width:800px){.clubSite .changeNight{align-self:stretch}.clubSite .chooseNightPrompt{padding:35px 20px}}
