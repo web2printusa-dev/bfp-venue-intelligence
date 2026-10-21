@@ -282,3 +282,5 @@
  .clubSite .clubEvents .eventTitle h3{font-size:11px}
  .clubSite .clubEvents .eventButtons .tableCta{font-size:10px}
 }
+
+.clubSite .clubEvents .eventTitle{display:block}
