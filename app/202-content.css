@@ -272,14 +272,14 @@
  .clubSite .clubEvents .eventButtons{padding:0 6px 8px}
  .clubSite .clubEvents .eventButtons .tableCta{min-height:44px;padding:8px 4px;font-size:11px;letter-spacing:0;line-height:1.3;border-radius:6px}
 }
-@media(max-width:390px){
+@media(max-width:600px){
  .clubSite .clubEvents{padding-inline:8px}
  .clubSite .clubEvents .eventGrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
  .clubSite .clubEvents .eventCaption{grid-template-columns:1fr;gap:6px;align-content:start;min-height:118px;padding:9px 6px}
  .clubSite .clubEvents .eventDate{display:flex;flex-direction:row;justify-content:flex-start;align-items:baseline;gap:3px;border:0;border-bottom:1px solid #454c37;padding:0 0 5px}
  .clubSite .clubEvents .eventDate span{font-size:9px}
  .clubSite .clubEvents .eventDate strong{font-size:17px}
- .clubSite .clubEvents .eventTitle h3{font-size:11px}
+ .clubSite .clubEvents .eventTitle h3{font-size:clamp(11px,2.8vw,15px)}
  .clubSite .clubEvents .eventButtons .tableCta{font-size:10px}
 }
 
