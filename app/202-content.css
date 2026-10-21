@@ -145,7 +145,82 @@
 .clubSite .heroActions .heroPrimary:hover,.clubSite .heroReserve>button:hover{background:#e0ff70!important;border-color:#e0ff70!important}
 
 @media(min-width:1101px){.clubSite .clubEvents .eventGrid{grid-template-columns:repeat(5,minmax(0,1fr))}}
-
 /* Highlight event table booking actions in the same reservation green. */
 .clubSite .eventButtons button:last-child{background:#d4ff31!important;border-color:#d4ff31!important;color:#11150a!important}
 .clubSite .eventButtons button:last-child:hover{background:#e0ff70!important;border-color:#e0ff70!important}
+
+/* Clearer 202 layout and a single green action color. */
+.clubSite{--club-action:#d4ff31;--club-action-hover:#e0ff70}
+.clubSite .events:before{display:none}
+.clubSite .clubEvents .sectionHead{display:block;margin-bottom:38px}
+.clubSite .clubEvents .sectionHead h2{font-size:clamp(48px,6vw,82px);line-height:.95;margin:0}
+.clubSite .clubEvents .sectionHead h2 i{display:inline;font-style:normal;color:#d0cec5}
+.clubSite .venueAbout{gap:7vw;align-items:center}
+.clubSite .aboutStory>p{font-size:17px;line-height:1.8;color:#c7c5bb;margin:0 0 34px;max-width:620px}
+.clubSite .venueStats{display:grid;grid-template-columns:1fr 1fr;gap:30px;padding-top:25px;border-top:1px solid #494438}
+.clubSite .venueStats>div{display:flex;gap:16px;align-items:center}
+.clubSite .venueStats strong{font:600 clamp(62px,6vw,88px)/1 'Barlow Condensed',Arial,sans-serif;letter-spacing:-.05em;color:#f4f0e7}
+.clubSite .venueStats>div>span{font-size:14px;font-weight:700;line-height:1.6;letter-spacing:.1em}
+.clubSite .venueStats span span{display:block;font-weight:400;color:#b6b3a8;font-size:13px;letter-spacing:0}
+.clubSite .bookingIntro{padding:54px 0 14px;max-width:800px}
+.clubSite .bookingIntro h2{font-size:clamp(44px,5vw,68px);margin:12px 0}
+.clubSite .bookingIntro>p:not(.eyebrow){margin-bottom:0}
+.clubSite .bookingControls{border-bottom:1px solid #343431;padding:26px 0;gap:20px}
+.clubSite .bookingControls>label{flex:1;max-width:480px}
+.clubSite .bookingControls select{width:100%}
+.clubSite .floorTabs{align-self:flex-end}
+.clubSite .floorTabs button{background:#141411;color:#fff;border-color:#7b8068;min-height:52px;font-weight:600}
+.clubSite .floorTabs button[aria-pressed=true],.clubSite .heroPrimary,.clubSite .heroReserve>button,.clubSite .aiPlan,.clubSite .primary,.clubSite .clubDialog .primary,.clubSite .eventButtons button:last-child{background:var(--club-action)!important;border-color:var(--club-action)!important;color:#11150a!important}
+.clubSite .floorTabs button[aria-pressed=true]:hover,.clubSite .heroPrimary:hover,.clubSite .heroReserve>button:hover,.clubSite .aiPlan:hover,.clubSite .primary:hover,.clubSite .eventButtons button:last-child:hover{background:var(--club-action-hover)!important;border-color:var(--club-action-hover)!important}
+.clubSite .hero nav button,.clubSite .hero nav .ownerLogin,.clubSite .heroActions button,.clubSite .eventButtons button,.clubSite .inlineButtons button,.clubSite .textButton,.clubSite .tableNumberList button{border-color:#a3b65d}
+.clubSite .bookingStage{grid-template-columns:minmax(0,1.5fr) minmax(300px,.8fr);gap:38px;border-bottom:0}
+.clubSite .mapPanel{padding:30px 0 0;border:0}
+.clubSite .floorHeading{margin-bottom:22px}
+.clubSite .floorHeading .eyebrow{font-size:11px;color:#c4ccac;margin:0 0 9px}
+.clubSite .floorHeading h3{font:600 clamp(36px,4vw,50px)/1 'Barlow Condensed',Arial,sans-serif;text-transform:uppercase;letter-spacing:-.025em;margin:0}
+.clubSite .floorHeading>p:last-child{font-size:14px;color:#b7bbac;margin:12px 0 0}
+.clubSite .floorCrop{overflow:hidden;line-height:0;border-radius:12px;border:1px solid #5f563e;background:#141411}
+.clubSite .floorCrop.floor1{--floor-crop:10.2%}
+.clubSite .floorCrop.floor2{--floor-crop:9.4%}
+.clubSite .floorPlanCanvas{position:relative;margin-top:calc(-1 * var(--floor-crop));line-height:0}
+.clubSite .floorPlanCanvas>img{display:block;width:100%;height:auto}
+.clubSite .tableHotspot{border-color:#d4ff3170!important;background:#d4ff3108!important;border-radius:5px}
+.clubSite .tableHotspot:hover,.clubSite .tableHotspot:focus-visible{outline:3px solid var(--club-action);background:#d4ff3138!important;box-shadow:0 0 16px #d4ff3135}
+.clubSite .tablePicker{padding-top:22px}
+.clubSite .tablePicker>span{font-size:13px;color:#b5b7aa}
+.clubSite .tableNumberList{margin:12px 0 0;gap:8px}
+.clubSite .tableNumberList button{background:#191c13;color:#f1f5e9;border-color:#69734c;min-width:68px;min-height:44px;font-size:13px}
+.clubSite .tableNumberList button:hover{background:#2b3420;border-color:var(--club-action)}
+.clubSite .inventory{padding:30px 0 0;align-self:start}
+.clubSite .inventory h3{font:600 clamp(34px,3.6vw,46px)/1.04 'Barlow Condensed',Arial,sans-serif;text-transform:uppercase;letter-spacing:-.025em;margin:12px 0 20px}
+.clubSite .inventoryEyebrow{font-size:11px;letter-spacing:.06em;color:#c4ccac}
+.clubSite .reservationLead{font-size:16px;line-height:1.75;color:#d1d2c9;margin:0 0 22px}
+.clubSite .inventoryRow{border-color:#596147!important;background:#171a13;margin:12px 0}
+.clubSite .inventoryRow:hover{background:#252c1b;border-color:var(--club-action)!important}
+.clubSite .inventoryRow span:last-child b{color:var(--club-action)}
+.clubSite .inventoryRow span:last-child small{color:#cbd3b8}
+.clubSite .reservationSteps{display:grid;gap:0;border-top:1px solid #3d4331}
+.clubSite .reservationSteps span{display:flex;gap:15px;align-items:center;padding:17px 0;border-bottom:1px solid #3d4331;font-size:15px;color:#eee}
+.clubSite .reservationSteps b{font:500 21px 'Barlow Condensed',Arial,sans-serif;color:var(--club-action)}
+.clubSite .reservationMenu,.clubSite .conciergeHelp button{width:100%;min-height:50px;background:#171b12;color:#fff;border:1px solid #81934d;padding:14px 18px;font-size:14px;font-weight:600;line-height:1.5;margin-top:14px}
+.clubSite .conciergeHelp{margin-top:26px;padding:22px;border:1px solid #3c4430;border-radius:14px;background:#14170f}
+.clubSite .conciergeHelp strong{font-size:18px;color:#f2f2ec}
+.clubSite .conciergeHelp p{font-size:14px;line-height:1.65;color:#bdc3af;margin:10px 0 0}
+.clubSite .conciergeHelp button{background:var(--club-action);border-color:var(--club-action);color:#11150a}
+.clubSite .reservationNote{font-size:12px;line-height:1.65;color:#aeb29f;margin-top:18px}
+.clubSite .packageChoices button.active{background:#e8f4bd;border-color:#5b7620;box-shadow:inset 0 0 0 1px #5b7620}
+.clubSite .notice,.clubSite .bookingCostPreview{background:#f1f5e6;border-color:#8c9d63}
+.clubSite .bookingProgress span.active{border-color:#59751b;color:#31420c}
+.clubSite .bookingProgress{margin-top:4px}
+.clubSite .bookingProgress span{font-size:12px}
+.clubSite .clubDialog .bottleExtras[open]{border-radius:12px;background:#fafbf6;padding:0 16px;border:1px solid #c2c9ae}
+.clubSite .bottleExtra select{min-width:65px}
+.clubSite .bookingCostPreview>div{flex-wrap:wrap}
+.clubSite .bookingCostPreview strong{font-size:21px}
+.clubSite .concierge .chatActions button{border-color:#657e36;background:#1b2410}
+.clubSite button:focus-visible,.clubSite a:focus-visible,.clubSite summary:focus-visible,.clubSite select:focus-visible,.clubSite input:focus-visible,.clubSite textarea:focus-visible{outline-color:var(--club-action)}
+.clubSite footer{align-items:center;gap:30px}
+.clubSite footer p{color:#c0c0b6;font-size:14px;line-height:1.9}
+@media(max-width:1100px){.clubSite .bookingStage{grid-template-columns:1fr;gap:24px}.clubSite .inventory{padding-top:0}.clubSite .bookingControls>label{max-width:none}.clubSite .floorTabs{align-self:stretch}.clubSite .floorTabs button{flex:1}.clubSite .inventory .reservationSteps{grid-template-columns:repeat(3,1fr);gap:18px}.clubSite .inventory .reservationSteps span{align-items:flex-start;line-height:1.5}}
+@media(max-width:800px){.clubSite .venueAbout{gap:30px}.clubSite .aboutStory>p{font-size:16px;margin-bottom:26px}.clubSite .venueStats{gap:16px}.clubSite .venueStats>div{gap:12px}.clubSite .venueStats strong{font-size:64px}.clubSite .venueStats>div>span{font-size:12px}.clubSite .venueStats span span{font-size:12px}.clubSite .clubEvents .sectionHead h2{font-size:clamp(42px,11vw,68px)}.clubSite .bookingIntro{padding-top:40px}.clubSite .bookingControls{padding:22px 0}.clubSite .floorTabs button{font-size:14px;line-height:1.4}.clubSite .bookingStage{gap:28px}.clubSite .mapPanel{padding-top:26px}.clubSite .floorHeading h3{font-size:40px}.clubSite .inventory .reservationSteps{grid-template-columns:1fr;gap:0}.clubSite footer{display:block}.clubSite .clubDialog h2 small{font-size:12px;line-height:1.5}}
+.clubSite .composer button{background:var(--club-action);color:#11150a}
