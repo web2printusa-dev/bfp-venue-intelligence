@@ -263,7 +263,7 @@
  .clubSite .clubEvents{padding:32px 12px 42px}
  .clubSite .clubEvents .sectionHead{margin-bottom:22px}
  .clubSite .clubEvents .sectionHead h2{font-size:clamp(30px,7vw,50px)}
- .clubSite .clubEvents .eventGrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+ .clubSite .clubEvents .eventGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
  .clubSite .clubEvents .eventCaption{grid-template-columns:32px minmax(0,1fr);gap:7px;padding:10px 7px;min-height:98px}
  .clubSite .clubEvents .eventDate{padding-right:6px}
  .clubSite .clubEvents .eventDate span{font-size:9px}
@@ -275,13 +275,14 @@
 }
 @media(max-width:600px){
  .clubSite .clubEvents{padding-inline:8px}
- .clubSite .clubEvents .eventGrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
- .clubSite .clubEvents .eventCaption{grid-template-columns:1fr;gap:6px;align-content:start;min-height:118px;padding:9px 6px}
+ .clubSite .clubEvents .eventGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .clubSite .clubEvents .eventCaption{grid-template-columns:1fr;gap:7px;align-content:start;min-height:112px;padding:10px 8px}
  .clubSite .clubEvents .eventDate{display:flex;flex-direction:row;justify-content:flex-start;align-items:baseline;gap:3px;border:0;border-bottom:1px solid #454c37;padding:0 0 5px}
- .clubSite .clubEvents .eventDate span{font-size:9px}
- .clubSite .clubEvents .eventDate strong{font-size:17px}
- .clubSite .clubEvents .eventTitle h3{font-size:clamp(11px,2.8vw,15px)}
- .clubSite .clubEvents .eventButtons .tableCta{font-size:10px}
+ .clubSite .clubEvents .eventDate span{font-size:10px}
+ .clubSite .clubEvents .eventDate strong{font-size:19px}
+ .clubSite .clubEvents .eventTitle h3{font-size:clamp(13px,3.4vw,18px)}
+ .clubSite .clubEvents .nightLabel{font-size:9px}
+ .clubSite .clubEvents .eventButtons .tableCta{font-size:11px}
 }
 .clubSite .clubEvents .eventTitle{display:block}
 
