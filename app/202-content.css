@@ -306,35 +306,39 @@
 .clubSite .heroShade{background:linear-gradient(90deg,rgba(0,0,0,.68),rgba(0,0,0,.1) 70%),linear-gradient(0deg,rgba(0,0,0,.78),rgba(0,0,0,.08) 58%)}
 @media(max-width:800px){.clubSite .heroImage{background-position:62% 25%!important}.clubSite .heroShade{background:linear-gradient(180deg,rgba(0,0,0,.23),rgba(0,0,0,.12) 30%,rgba(0,0,0,.84) 100%)}}
 
-/* Bigger hero promise and a flyer-inspired feature showcase for the rooms. */
+/* Clear in-club details, set like an editorial venue and food menu spread. */
 .clubSite .heroLine{font-size:clamp(19px,1.55vw,24px);line-height:1.5;font-weight:550;max-width:850px}
 .clubSite .venueAbout{gap:6vw;align-items:center}
 .clubSite .aboutHeadline small{display:block;color:#d4ff31!important;font-size:12px;letter-spacing:.16em;margin-bottom:22px}
 .clubSite .aboutHeadline h2{font-size:clamp(58px,7.6vw,108px);line-height:.82;letter-spacing:-.065em;font-weight:850;margin:0}
 .clubSite .aboutHeadline h2 i{font-style:normal;color:#fa2a99!important}
-.clubSite .aboutStory>p{font-size:19px;line-height:1.7;margin-bottom:28px}
-.clubSite .venueStats{gap:14px;padding:0;border:0}
-.clubSite .venueStats>.floorFeature{position:relative;display:flex;flex-direction:column;justify-content:space-between;align-items:flex-start;min-height:184px;gap:16px;padding:20px;overflow:hidden;border:0;border-radius:4px}
-.clubSite .venueStats>.floorFeature:after{content:"";position:absolute;width:140px;height:140px;border:1px solid #ffffff50;border-radius:50%;right:-46px;top:-54px;box-shadow:0 0 0 14px #ffffff12,0 0 0 28px #ffffff0a}
-.clubSite .venueStats>.floorFeatureOne{background:linear-gradient(135deg,#ff2997 0%,#be176f 55%,#71184e 100%)}
-.clubSite .venueStats>.floorFeatureTwo{background:linear-gradient(135deg,#8d32ff 0%,#5222bb 58%,#211b62 100%)}
-.clubSite .venueStats>.floorFeature strong{position:relative;z-index:1;color:#fff;font:800 76px/.8 'Barlow Condensed',Arial,sans-serif;letter-spacing:-.06em}
-.clubSite .venueStats>.floorFeature>span{position:relative;z-index:1;font-size:14px;line-height:1.35;letter-spacing:.09em;color:#fff}
-.clubSite .venueStats>.floorFeature>span b{display:block;font-size:15px;font-weight:850}
-.clubSite .venueStats>.floorFeature>span small{display:block;color:#fff;font-size:13px;font-weight:500;letter-spacing:.02em;margin-top:4px}
-.clubSite .aboutBarNote{display:flex;align-items:center;gap:13px;margin-top:15px;padding:14px 16px;border-left:4px solid #d4ff31;background:#171b12}
-.clubSite .aboutBarNote b{font-size:14px;letter-spacing:.1em;color:#d4ff31;white-space:nowrap}
-.clubSite .aboutBarNote span{font-size:13px;color:#e7e4dc}
+.clubSite .venueFacts{display:grid;grid-template-columns:1fr 1fr 1.05fr;border-block:1px solid #615c4d}
+.clubSite .venueFact{display:flex;align-items:center;gap:12px;min-width:0;min-height:100px;padding:16px 13px;border-right:1px solid #615c4d}
+.clubSite .venueFact:last-child{border-right:0}
+.clubSite .venueFact>strong{font:700 58px/.8 'Barlow Condensed',Arial,sans-serif;color:#d4ff31;letter-spacing:-.06em}
+.clubSite .venueFact>span b{display:block;color:#f4f0e7;font-size:13px;letter-spacing:.08em}
+.clubSite .venueFact>span small,.clubSite .venueFactHookah small{display:block;color:#bdb9af;font-size:12px;line-height:1.4;margin-top:5px}
+.clubSite .venueFactHookah{display:block;padding-left:20px}
+.clubSite .venueFactHookah>b{font:700 29px/1 'Barlow Condensed',Arial,sans-serif;color:#fa2a99;letter-spacing:.02em}
+.clubSite .foodMenuFeature{display:grid;grid-template-columns:minmax(150px,.55fr) minmax(0,1fr);gap:26px;margin-top:22px;padding:22px 0 0;border-top:3px solid #d4ff31}
+.clubSite .foodMenuHeading small{display:block;color:#d4ff31;font-size:10px;letter-spacing:.16em}
+.clubSite .foodMenuHeading h3{margin:8px 0 0;color:#f4f0e7;font:700 34px/.95 'Barlow Condensed',Arial,sans-serif;letter-spacing:.015em}
+.clubSite .menuHighlights{display:grid;grid-template-columns:1fr 1fr;column-gap:22px}
+.clubSite .menuHighlights span{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:9px 0;border-bottom:1px solid #45443d;color:#e2ded4;font-size:13px;line-height:1.35}
+.clubSite .menuHighlights b{color:#d4ff31;font-weight:700;white-space:nowrap}
 @media(max-width:800px){
  .clubSite .heroLine{font-size:18px;line-height:1.55;max-width:600px}
  .clubSite .aboutHeadline small{margin-bottom:14px}
  .clubSite .aboutHeadline h2{font-size:clamp(56px,14vw,86px)}
- .clubSite .aboutStory>p{font-size:17px;line-height:1.65}
- .clubSite .venueStats{grid-template-columns:1fr 1fr;gap:9px}
- .clubSite .venueStats>.floorFeature{min-height:154px;padding:15px}
- .clubSite .venueStats>.floorFeature strong{font-size:62px}
- .clubSite .venueStats>.floorFeature>span,.clubSite .venueStats>.floorFeature>span b{font-size:12px}
- .clubSite .venueStats>.floorFeature>span small{font-size:12px}
- .clubSite .aboutBarNote{gap:9px;padding:12px}
- .clubSite .aboutBarNote b,.clubSite .aboutBarNote span{font-size:12px}
+ .clubSite .venueFacts{grid-template-columns:1fr 1fr}
+ .clubSite .venueFact{min-height:85px;padding:13px 9px;gap:8px}
+ .clubSite .venueFact>strong{font-size:48px}
+ .clubSite .venueFact>span b{font-size:11px}
+ .clubSite .venueFact>span small,.clubSite .venueFactHookah small{font-size:11px}
+ .clubSite .venueFactHookah{border-top:1px solid #615c4d;padding:15px 9px;min-height:0}
+ .clubSite .venueFactHookah>b{font-size:25px}
+ .clubSite .foodMenuFeature{grid-template-columns:1fr;gap:12px;margin-top:18px;padding-top:16px}
+ .clubSite .foodMenuHeading h3{font-size:29px}
+ .clubSite .menuHighlights{grid-template-columns:1fr 1fr;column-gap:12px}
+ .clubSite .menuHighlights span{font-size:12px;padding:8px 0}
 }
