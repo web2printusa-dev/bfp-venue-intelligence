@@ -282,5 +282,20 @@
  .clubSite .clubEvents .eventTitle h3{font-size:clamp(11px,2.8vw,15px)}
  .clubSite .clubEvents .eventButtons .tableCta{font-size:10px}
 }
-
 .clubSite .clubEvents .eventTitle{display:block}
+
+/* Tables are a separate event-led booking page; homepage stays event-first. */
+.clubSite .clubEvents .eventNight{display:flex;flex-direction:column;align-items:center;gap:5px;border-right:1px solid #5c6252;padding-right:15px;line-height:1.2}
+.clubSite .clubEvents .eventNight span{font-size:10px;letter-spacing:.08em;color:#c9cebf}
+.clubSite .clubEvents .eventNight strong{font-size:24px;letter-spacing:-.025em}
+.clubSite .bookingPageHeader{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:12px 4vw;border-bottom:1px solid #353b2b;background:#0b0d08}
+.clubSite .bookingPageHeader .clubMark{width:120px!important;height:110px;display:block}
+.clubSite .bookingPageHeader .clubMark img{display:block;width:100%;height:100%;object-fit:contain;transform:scale(1.35)}
+.clubSite .backToEvents{display:inline-flex;align-items:center;justify-content:center;min-height:48px;border:1px solid #81934d;background:#171b12;color:#fff;padding:13px 20px;border-radius:10px;text-decoration:none;font-size:14px;font-weight:600}
+.clubSite .chooseNightPrompt .backToEvents{margin-top:24px}
+.clubSite .selectedEventNight{display:flex;flex-direction:column;gap:8px}
+.clubSite .selectedEventNight>span{font-size:11px;letter-spacing:.12em;color:#c4ccac}
+.clubSite .selectedEventNight>strong{font-size:19px;line-height:1.4}
+.clubSite.clubBookingPage .bookingIntro{padding-top:38px}
+@media(max-width:800px){.clubSite .clubEvents .eventNight{padding-right:6px;gap:4px}.clubSite .clubEvents .eventNight span{font-size:8px}.clubSite .clubEvents .eventNight strong{font-size:17px}.clubSite .bookingPageHeader{padding:8px 18px}.clubSite .bookingPageHeader .clubMark{width:95px!important;height:90px}.clubSite .backToEvents{font-size:13px;padding:12px 16px}.clubSite .selectedEventNight>strong{font-size:17px}}
+@media(max-width:600px){.clubSite .clubEvents .eventNight{display:flex;flex-direction:row;justify-content:flex-start;gap:5px;border-right:0;border-bottom:1px solid #454c37;padding:0 0 7px;align-items:baseline}.clubSite .clubEvents .eventNight strong{font-size:15px}}

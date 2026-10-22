@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { events, tables, bottles, packagesFor, customPackage, contact, money, arrivalOptions, maxReservationGuests, type ClubEvent, type ClubTable, type Occurrence } from '../../lib/202-lounge-public';
 
 type Msg={role:'ai'|'user';text:string};
@@ -28,13 +29,12 @@ function Modal({title,onClose,children}:{title:string;onClose:()=>void;children:
  return <div className="overlay clubOverlay" onClick={onClose}><div ref={ref} className="booking clubDialog" role="dialog" aria-modal="true" aria-label={title} onClick={e=>e.stopPropagation()}><button className="close" onClick={onClose} aria-label="Close dialog">×</button>{children}</div></div>;
 }
 
-export default function Home({initialDates}:{initialDates:Occurrence[]}){
+export default function Home({initialDates,bookingOnly=false,initialNightId}:{initialDates:Occurrence[];bookingOnly?:boolean;initialNightId?:string}){
+ const router=useRouter();
  const [dates]=useState<Occurrence[]>(initialDates);
- const [nightKey,setNightKey]=useState('');
- const [nightFilter,setNightFilter]=useState<string|null>(null);
+ const [nightKey]=useState(()=>bookingOnly?initialDates.find(d=>d.event.id===initialNightId)?.key||'':'');
  const occurrence=dates.find(d=>d.key===nightKey)||dates[0];
  const hasNight=Boolean(nightKey&&dates.some(d=>d.key===nightKey));
- const visibleDates=nightFilter?dates.filter(d=>d.event.id===nightFilter):dates;
  const [floor,setFloor]=useState(1),[guests,setGuests]=useState(4),[experience,setExperience]=useState('Bottle Service');
  const [selected,setSelected]=useState<ClubTable|null>(null),[step,setStep]=useState(1),[packageId,setPackageId]=useState(''),[extraBottles,setExtraBottles]=useState<Record<string,number>>({});
  const [name,setName]=useState(''),[email,setEmail]=useState(''),[phone,setPhone]=useState(''),[arrival,setArrival]=useState(''),[notes,setNotes]=useState('');
@@ -52,11 +52,12 @@ export default function Home({initialDates}:{initialDates:Occurrence[]}){
  const estimate=publishedSubtotal===null?null:publishedSubtotal*1.3;
  const special=events.find(e=>e.id==='trektober');
  const specialDate=dates.find(d=>d.event.id==='trektober');
- function selectDate(key:string){const next=dates.find(d=>d.key===key);setNightKey(next?.key||'');setSelected(null);setPackageId('');setExtraBottles({});setArrival('');}
  function goReserve(event?:ClubEvent,kind?:string){
-  if(event){const next=hasNight&&activeEvent.id===event.id?occurrence:dates.find(d=>d.event.id===event.id);setNightFilter(event.id);selectDate(next?.key||'');}
-  else setNightFilter(null);
-  if(kind)setExperience(kind);setTicketEvent(null);setConcierge(false);setSelected(null);document.getElementById('reserve')?.scrollIntoView({behavior:'smooth',block:'start'});
+  setTicketEvent(null);setConcierge(false);setMenu(false);
+  const target=event||(bookingOnly&&hasNight?activeEvent:null);
+  if(target){router.push(`/reserve?night=${encodeURIComponent(target.id)}`);return;}
+  if(bookingOnly){router.push('/#events');return;}
+  document.getElementById('events')?.scrollIntoView({behavior:'smooth',block:'start'});
  }
  function choose(table:ClubTable){if(!hasNight)return;setSelected(table);setFloor(table.floor);setStep(1);setPackageId('');setExtraBottles({});setName('');setEmail('');setPhone('');setNotes('');setArrival('');}
  function openTickets(event:ClubEvent){setTicketEvent(event);}
@@ -70,37 +71,37 @@ export default function Home({initialDates}:{initialDates:Occurrence[]}){
  }
  function runAction(a:Action){const event=events.find(e=>e.artist===a.event);setConcierge(false);if(a.type==='tickets')openTickets(event||activeEvent);else goReserve(event);}
  const showFlyer=(src:string,title:string)=>setFlyer({src,title});
- return <main className="clubSite">
-  <section className="hero"><div className="heroImage"/><div className="heroShade"/><div className="grain"/>
-   <header><a className="mark clubMark" href="#" aria-label="202 Lounge home"><img src="/202/logo.webp" alt="202 Lounge — The Experience"/></a><nav><a href="#reserve" onClick={()=>goReserve(undefined,'VIP Table')}>Table Reservations</a><a href="#reserve" onClick={()=>goReserve(undefined,'Bottle Service')}>Bottle Service</a><a href="#events">Events</a><a href="/dashboard" className="ownerLogin">Owner Login</a><button onClick={()=>setConcierge(true)}>VIP Concierge</button></nav></header>
+ return <main className={`clubSite ${bookingOnly?'clubBookingPage':''}`}>
+  {!bookingOnly&&<><section className="hero"><div className="heroImage"/><div className="heroShade"/><div className="grain"/>
+   <header><a className="mark clubMark" href="#" aria-label="202 Lounge home"><img src="/202/logo.webp" alt="202 Lounge — The Experience"/></a><nav><a href="#events" onClick={e=>{e.preventDefault();goReserve();}}>Table Reservations</a><a href="#events" onClick={e=>{e.preventDefault();goReserve();}}>Bottle Service</a><a href="#events">Events</a><a href="/dashboard" className="ownerLogin">Owner Login</a><button onClick={()=>setConcierge(true)}>VIP Concierge</button></nav></header>
    <div className="heroCopy"><p className="eyebrow">CHINATOWN · WASHINGTON, DC</p><h1>DC NIGHTLIFE.<br/><i>STARTS HERE.</i></h1><p className="heroLine">Food, cocktails, hookah and VIP bottle service in the heart of Chinatown.</p>
     <div className="heroActions"><button className="heroPrimary" onClick={()=>goReserve()}>Reserve a Table →</button><button onClick={()=>document.getElementById('events')?.scrollIntoView({behavior:'smooth'})}>Events & RSVP</button><button onClick={()=>setMenu(true)}>Bottle Menu</button></div>
-    <div className="heroReserve"><label><span>DATE / NIGHT</span><select aria-label="Choose date and night" value={nightKey} onChange={e=>{setNightFilter(null);selectDate(e.target.value);}}><option value="" disabled>Choose your night</option>{dates.map(d=><option key={d.key} value={d.key}>{d.label} · {d.event.artist}</option>)}</select></label><label><span>GUESTS</span><select aria-label="Guest count" value={guests} onChange={e=>setGuests(Math.min(maxReservationGuests,Math.max(1,Number(e.target.value))))}>{Array.from({length:maxReservationGuests},(_,i)=>i+1).map(n=><option key={n} value={n}>{n}</option>)}</select></label><label><span>EXPERIENCE</span><select aria-label="Experience" value={experience} onChange={e=>setExperience(e.target.value)}>{['Bottle Service','VIP Table','Birthday','Night Out'].map(x=><option key={x}>{x}</option>)}</select></label><button onClick={()=>goReserve()}>Choose My Table →</button></div>
+
    </div>
   </section>
 
   <section className="events clubEvents" id="events"><div className="sectionHead"><h2>WHAT’S ON <i>AT 202</i></h2></div>
    <div className="eventGrid">{[...(special&&specialDate?[special]:[]),...events.filter(e=>!e.fixedDate)].map(event=>{
-    const nextDate=dates.find(d=>d.event.id===event.id);
-    const eventDay=nextDate?new Date(`${nextDate.date}T12:00:00Z`):null;
-    const month=eventDay?.toLocaleDateString('en-US',{month:'short',timeZone:'UTC'});
     return <article className={`event ${event.fixedDate?'eventSpecial':''}`} key={event.id}>
      <button className="flyerButton" onClick={()=>openTickets(event)} aria-label={`View ${event.artist} event details`}><img loading="lazy" width="720" height="900" src={event.image} alt={`${event.artist} flyer`}/></button>
-     <div className="eventInfo"><div className="eventCaption"><time dateTime={nextDate?.date} className="eventDate"><span>{event.day}</span><span>{month}</span><strong>{eventDay?.getUTCDate()}</strong></time><div className="eventTitle"><span className="nightLabel">{event.fixedDate?'SPECIAL EVENT':`EVERY ${event.day}`}</span><h3>{event.fixedDate?'TrickTober':event.artist}</h3></div></div><div className="eventButtons"><button className="tableCta" onClick={()=>goReserve(event,'Bottle Service')}>{event.fixedDate?'Request a Table':'Tables & Packages'}</button></div></div>
+     <div className="eventInfo"><div className="eventCaption"><div className="eventNight"><span>{event.fixedDate?'OCT':'EVERY'}</span><strong>{event.fixedDate?'24':event.day}</strong></div><div className="eventTitle"><span className="nightLabel">{event.fixedDate?'SPECIAL EVENT':`EVERY ${event.day}`}</span><h3>{event.fixedDate?'TrickTober':event.artist}</h3></div></div><div className="eventButtons"><button className="tableCta" onClick={()=>goReserve(event,'Bottle Service')}>{event.fixedDate?'Request a Table':'Tables & Packages'}</button></div></div>
     </article>;
    })}</div>
   </section>
   <section className="venueAbout"><div><small>202 LOUNGE · CHINATOWN</small><h2>COME FOR THE VIBE.<br/><i>STAY FOR THE NIGHT.</i></h2></div><div className="aboutStory"><p>Cocktails with your people. Hookah at your table. A night that keeps going. Discover the first floor and the upstairs Aura Room, a short walk from Capital One Arena.</p><div className="venueStats"><div><strong>02</strong><span>FLOORS<span>Find your scene.</span></span></div><div><strong>02</strong><span>FULL BARS<span>Make it your night.</span></span></div></div></div></section>
-  <section className="bookingExperience" id="reserve"><div className="bookingIntro"><p className="eyebrow">TABLES & BOTTLE SERVICE</p><h2>Your night. Your table.</h2><p>Choose your night first. Then pick your floor, table and bottles. Up to 8 guests per reservation.</p></div>
-   <div className="bookingControls"><label>Your night<select aria-label="Reservation date" value={nightKey} onChange={e=>selectDate(e.target.value)}><option value="" disabled>Choose your night</option>{visibleDates.map(d=><option key={d.key} value={d.key}>{d.label} · {d.event.artist}</option>)}</select></label>{nightFilter&&<button className="changeNight" onClick={()=>{setNightFilter(null);selectDate('');}}>Change night</button>}{hasNight&&<div className="floorTabs" role="group" aria-label="Choose floor">{floors.map(f=><button key={f.id} aria-pressed={floor===f.id} onClick={()=>{setFloor(f.id);setPackageId('');setSelected(null);}}>{f.name}</button>)}</div>}</div>
+  </>}
+  {bookingOnly&&<><header className="bookingPageHeader"><a className="clubMark" href="/" aria-label="202 Lounge home"><img src="/202/logo.webp" alt="202 Lounge — The Experience"/></a><a className="backToEvents" href="/#events">← Back to Events</a></header>
+  <section className="bookingExperience" id="reserve"><div className="bookingIntro"><p className="eyebrow">TABLES & BOTTLE SERVICE</p><h2>{hasNight?activeEvent.artist:'Choose your event.'}</h2><p>Pick your floor, tap your table and choose your bottles. Up to 8 guests per reservation.</p></div>
+   {hasNight&&<div className="bookingControls"><div className="selectedEventNight"><span>YOUR NIGHT</span><strong>{activeEvent.artist}</strong></div><div className="floorTabs" role="group" aria-label="Choose floor">{floors.map(f=><button key={f.id} aria-pressed={floor===f.id} onClick={()=>{setFloor(f.id);setPackageId('');setSelected(null);}}>{f.name}</button>)}</div></div>}
+
    {hasNight?<div className="bookingStage"><div className="mapPanel"><div className="floorHeading"><p className="eyebrow">{floor===2?'THE AURA ROOM':'THE MAIN ROOM'}</p><h3>{floor===2?'Second Floor':'First Floor'}</h3><p>Tap a table to get started.</p></div><div className={`realFloorPlan floorCrop floor${floor}`}><div className="floorPlanCanvas"><img src={floor===1?'/202/floor1.webp':'/202/floor2.webp'} alt={`${floor===1?'First':'Second'} floor plan with numbered tables, bar and DJ`}/>{tables.filter(t=>t.floor===floor).map(t=><button key={t.id} className="tableHotspot" style={{left:`${t.x}%`,top:`${t.y}%`,width:`${t.width}%`,height:`${t.height}%`}} onClick={()=>choose(t)} aria-label={`Choose ${floor===2?'second floor':'first floor'} table ${t.number}`} title={`Table ${t.number}`}/>)}</div></div><div className="tablePicker"><span>Or choose a table number</span><div className="tableNumberList" aria-label="Table numbers">{tables.filter(t=>t.floor===floor).map(t=><button key={t.id} onClick={()=>choose(t)}>Table {t.number}</button>)}</div></div></div>
     <aside className="inventory"><p className="inventoryEyebrow">{occurrence.label} · {floor===2?'SECOND FLOOR':'FIRST FLOOR'}</p><h3>Make it your night.</h3>{packages.filter(p=>p.price!==null).length>0?<><p className="reservationLead">Start with a bottle package, or choose a table on the map.</p>{packages.filter(p=>p.price!==null).map(p=><button key={p.id} className="inventoryRow" onClick={()=>{choose({id:`F${floor}-concierge`,number:0,floor,x:0,y:0,width:0,height:0});setPackageId(p.id);}}><span><b>{p.name}</b><small>{p.description}</small></span><span><b>{money(p.price!)}</b><small>Choose →</small></span></button>)}</>:<><p className="reservationLead">Choose a table, pick your bottles and bring your people. You’ll see bottle prices as you build your night.</p><div className="reservationSteps"><span><b>01</b> Choose your table</span><span><b>02</b> Select your bottles</span><span><b>03</b> Review your request</span></div><button className="aiPlan" onClick={()=>{choose({id:`F${floor}-concierge`,number:0,floor,x:0,y:0,width:0,height:0});}}>Choose My Bottles →</button></>}
      <button className="reservationMenu" onClick={()=>setMenu(true)}>View Bottle Menu ↗</button><div className="conciergeHelp"><strong>Need a hand?</strong><p>Get help with packages, birthdays or finding the right table.</p><button onClick={()=>{setInput(`Help me plan a table for ${activeEvent.artist} on ${occurrence.label} for ${guests} guests.`);setConcierge(true);}}>Ask the Concierge ↗</button></div><p className="reservationNote">Table availability and any minimum spend are confirmed before payment.</p></aside>
-   </div>:<div className="chooseNightPrompt"><span>01 / CHOOSE YOUR NIGHT</span><h3>When are you coming?</h3><p>Select an event date above to see its tables and bottle options.</p></div>}
-  </section>
-  <footer><a className="mark clubMark" href="#" aria-label="202 Lounge home"><img src="/202/logo.webp" alt="202 Lounge — The Experience"/></a><p>609 H St NW · Washington, DC<br/>Text <a href={`sms:${contact.sms}`}>{contact.phone}</a><br/>Powered by BFP Venue Intelligence.</p><div><a href="#reserve" onClick={()=>goReserve()}>Table Reservations</a><button className="footerConcierge" onClick={()=>setMenu(true)}>Bottle Menu</button><a href="#events">Events</a><a href="/careers">Careers</a><a href="/dashboard">Owner Login</a><button className="footerConcierge" onClick={()=>setConcierge(true)}>VIP Concierge</button></div></footer>
+   </div>:<div className="chooseNightPrompt"><span>TABLES & BOTTLES</span><h3>Start with your event.</h3><p>Choose an event to see its tables and bottle options.</p><a className="backToEvents" href="/#events">View Events →</a></div>}
+  </section></>}
+  <footer><a className="mark clubMark" href="#" aria-label="202 Lounge home"><img src="/202/logo.webp" alt="202 Lounge — The Experience"/></a><p>609 H St NW · Washington, DC<br/>Text <a href={`sms:${contact.sms}`}>{contact.phone}</a><br/>Powered by BFP Venue Intelligence.</p><div><a href="/#events">Table Reservations</a><button className="footerConcierge" onClick={()=>setMenu(true)}>Bottle Menu</button><a href="/#events">Events</a><a href="/careers">Careers</a><a href="/dashboard">Owner Login</a><button className="footerConcierge" onClick={()=>setConcierge(true)}>VIP Concierge</button></div></footer>
 
-  {ticketEvent&&<Modal title={`${ticketEvent.artist} details and RSVP`} onClose={()=>setTicketEvent(null)}><p className="eyebrow">202 LOUNGE / EVENTS & RSVP</p><h2>{ticketEvent.artist}</h2><p>{ticketDate?.label}, {ticketDate?.date.slice(0,4)} · {ticketEvent.time}</p><ul className="eventDetails">{ticketEvent.details.map(d=><li key={d}>{d}</li>)}</ul><p><strong>{ticketEvent.admission}</strong></p><div className="modalActions">{ticketEvent.rsvp?<a className="primary actionLink" href={ticketEvent.rsvp} target="_blank" rel="noopener noreferrer">RSVP for this night ↗</a>:<p className="rsvpPending">Online RSVP coming soon.</p>}<button onClick={()=>goReserve(ticketEvent)}>VIEW TABLE PACKAGES →</button><button onClick={()=>{setTicketEvent(null);showFlyer(ticketEvent.image,ticketEvent.artist);}}>VIEW FULL FLYER</button></div><p className="packageFine">Check the event details for RSVP cutoffs and admission requirements.</p></Modal>}
+  {ticketEvent&&<Modal title={`${ticketEvent.artist} details and RSVP`} onClose={()=>setTicketEvent(null)}><p className="eyebrow">202 LOUNGE / EVENTS & RSVP</p><h2>{ticketEvent.artist}</h2><p>{ticketEvent.fixedDate?`${ticketDate?.label} · `:`Every ${ticketEvent.day} · `}{ticketEvent.time}</p><ul className="eventDetails">{ticketEvent.details.map(d=><li key={d}>{d}</li>)}</ul><p><strong>{ticketEvent.admission}</strong></p><div className="modalActions">{ticketEvent.rsvp?<a className="primary actionLink" href={ticketEvent.rsvp} target="_blank" rel="noopener noreferrer">RSVP for this night ↗</a>:<p className="rsvpPending">Online RSVP coming soon.</p>}<button onClick={()=>goReserve(ticketEvent)}>VIEW TABLE PACKAGES →</button><button onClick={()=>{setTicketEvent(null);showFlyer(ticketEvent.image,ticketEvent.artist);}}>VIEW FULL FLYER</button></div><p className="packageFine">Check the event details for RSVP cutoffs and admission requirements.</p></Modal>}
 
   {selected&&<Modal title="Build your table request" onClose={()=>setSelected(null)}><div className="bookingProgress"><span className={step>=1?'active':''}>1 · TABLE</span><span className={step>=2?'active':''}>2 · BOTTLES</span><span className={step>=3?'active':''}>3 · GUEST</span><span className={step>=4?'active':''}>4 · REVIEW</span></div><p className="eyebrow">{occurrence.label} · {activeEvent.artist}</p><h2>{floor===2?'Aura Room':'First floor'}<small> {selected.number?`PREFERRED TABLE ${selected.number}`:'CONCIERGE TABLE SELECTION'}</small></h2>
    {step===1&&<><p>Set your group size, then choose your bottles. Your table request is confirmed before payment.</p><div className="demoForm bookingFields"><label>Guests<select value={guests} onChange={e=>setGuests(Math.min(maxReservationGuests,Math.max(1,Number(e.target.value))))}>{Array.from({length:maxReservationGuests},(_,i)=><option key={i+1} value={i+1}>{i+1}</option>)}</select></label><label>Occasion<select value={experience} onChange={e=>setExperience(e.target.value)}>{['Bottle Service','VIP Table','Birthday','Night Out','Private Event'].map(x=><option key={x}>{x}</option>)}</select></label></div><button className="primary fullWidth" onClick={()=>setStep(2)}>Choose My Bottles →</button></>}
