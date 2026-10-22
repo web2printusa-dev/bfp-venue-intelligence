@@ -74,7 +74,7 @@ export default function Home({initialDates,bookingOnly=false,initialNightId}:{in
  return <main className={`clubSite ${bookingOnly?'clubBookingPage':''}`}>
   {!bookingOnly&&<><section className="hero"><div className="heroImage"/><div className="heroShade"/><div className="grain"/>
    <header><a className="mark clubMark" href="#" aria-label="202 Lounge home"><img src="/202/logo.webp" alt="202 Lounge — The Experience"/></a><nav><a href="#events" onClick={e=>{e.preventDefault();goReserve();}}>Table Reservations</a><a href="#events" onClick={e=>{e.preventDefault();goReserve();}}>Bottle Service</a><a href="#events">Events</a><a href="/dashboard" className="ownerLogin">Owner Login</a><button onClick={()=>setConcierge(true)}>VIP Concierge</button></nav></header>
-   <div className="heroCopy"><p className="eyebrow">CHINATOWN · WASHINGTON, DC</p><h1>DC NIGHTLIFE.<br/><i>STARTS HERE.</i></h1><p className="heroLine">Food, cocktails, hookah and VIP bottle service in the heart of Chinatown.</p>
+   <div className="heroCopy"><h1>DC NIGHTLIFE.<br/><i>STARTS HERE.</i></h1><p className="heroLine">Food, cocktails, hookah and VIP bottle service in the heart of Chinatown.</p>
     <div className="heroActions"><button className="heroPrimary" onClick={()=>goReserve()}>Reserve a Table →</button><button onClick={()=>document.getElementById('events')?.scrollIntoView({behavior:'smooth'})}>Events & RSVP</button><button onClick={()=>setMenu(true)}>Bottle Menu</button></div>
 
    </div>
@@ -88,7 +88,7 @@ export default function Home({initialDates,bookingOnly=false,initialNightId}:{in
     </article>;
    })}</div>
   </section>
-  <section className="venueAbout"><div><small>202 LOUNGE · CHINATOWN</small><h2>COME FOR THE VIBE.<br/><i>STAY FOR THE NIGHT.</i></h2></div><div className="aboutStory"><p>Cocktails with your people. Hookah at your table. A night that keeps going. Discover the first floor and the upstairs Aura Room, a short walk from Capital One Arena.</p><div className="venueStats"><div><strong>02</strong><span>FLOORS<span>Find your scene.</span></span></div><div><strong>02</strong><span>FULL BARS<span>Make it your night.</span></span></div></div></div></section>
+   <section className="venueAbout"><div className="aboutHeadline"><small>202 LOUNGE · CHINATOWN</small><h2>COME FOR<br/>THE VIBE.<br/><i>STAY FOR<br/>THE NIGHT.</i></h2></div><div className="aboutStory"><p>Cocktails with your people. Hookah at your table. A night that keeps going. Discover the first floor and the upstairs Aura Room, a short walk from Capital One Arena.</p><div className="venueStats"><div className="floorFeature floorFeatureOne"><strong>01</strong><span><b>FIRST FLOOR</b><small>Main room</small></span></div><div className="floorFeature floorFeatureTwo"><strong>02</strong><span><b>SECOND FLOOR</b><small>Aura Room</small></span></div></div><div className="aboutBarNote"><b>02 FULL BARS</b><span>Pick your floor. Find your people.</span></div></div></section>
   </>}
   {bookingOnly&&<><header className="bookingPageHeader"><a className="clubMark" href="/" aria-label="202 Lounge home"><img src="/202/logo.webp" alt="202 Lounge — The Experience"/></a><a className="backToEvents" href="/#events">← Back to Events</a></header>
   <section className="bookingExperience" id="reserve"><div className="bookingIntro"><p className="eyebrow">TABLES & BOTTLE SERVICE</p><h2>{hasNight?activeEvent.artist:'Choose your event.'}</h2><p>Pick your floor, tap your table and choose your bottles. Up to 8 guests per reservation.</p></div>
