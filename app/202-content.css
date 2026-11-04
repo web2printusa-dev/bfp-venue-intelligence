@@ -181,8 +181,7 @@
 .clubSite .floorHeading h3{font:600 clamp(36px,4vw,50px)/1 'Barlow Condensed',Arial,sans-serif;text-transform:uppercase;letter-spacing:-.025em;margin:0}
 .clubSite .floorHeading>p:last-child{font-size:14px;color:#b7bbac;margin:12px 0 0}
 .clubSite .floorCrop{overflow:hidden;line-height:0;border-radius:12px;border:1px solid #5f563e;background:#141411}
-.clubSite .floorCrop.floor1{--floor-crop:10.2%}
-.clubSite .floorCrop.floor2{--floor-crop:9.4%}
+.clubSite .floorCrop.floor1,.clubSite .floorCrop.floor2{--floor-crop:0%}
 .clubSite .floorPlanCanvas{position:relative;margin-top:calc(-1 * var(--floor-crop));line-height:0}
 .clubSite .floorPlanCanvas>img{display:block;width:100%;height:auto}
 .clubSite .tableHotspot{border-color:#d4ff3170!important;background:#d4ff3108!important;border-radius:5px}

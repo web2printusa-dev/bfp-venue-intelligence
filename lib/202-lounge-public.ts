@@ -51,8 +51,10 @@ export const bottles=[
 export type ClubTable={id:string;number:number;floor:number;x:number;y:number;width:number;height:number};
 const make=(floor:number,n:number,x:number,y:number,width=9,height=7):ClubTable=>({id:`F${floor}-${n}`,number:n,floor,x,y,width,height});
 export const tables:ClubTable[]=[
- make(1,1,5,70),make(1,2,5,61),make(1,3,20,50,12,7),make(1,4,5,43),make(1,5,5,33),make(1,6,5,22),make(1,7,20,18,12,7),make(1,8,95,26),make(1,9,95,37),make(1,10,95,55),make(1,11,95,65),
- make(2,1,10,78,13,13),make(2,2,10,63,13,13),make(2,3,29,51,23,7),make(2,4,14,39,19,6),make(2,5,8,25),make(2,6,8,16),make(2,7,29,16,14,7),make(2,8,48,16,14,7),make(2,9,68,16,14,7),make(2,10,88,25,7,13),
+ // Hotspots follow the numbered table artwork in floor1.webp (1–12).
+ make(1,1,31.4,77.5,12.5,6.2),make(1,2,31.4,67.3,12.5,6.2),make(1,3,33.8,52.4,11,5.8),make(1,4,32.7,42.1,6.2,7),make(1,5,32.7,31.9,6.2,7),make(1,6,32.7,21.8,6.2,7),make(1,7,35.2,12.1,12,4.4),make(1,8,74.7,26.1,9.5,4.2),make(1,9,74.7,34.9,9.5,4.2),make(1,10,74.7,43.4,9.5,4.2),make(1,11,74.7,66.9,8,6),make(1,12,74.7,77.5,8,6),
+ // Hotspots follow the numbered Aura Room artwork in floor2.webp (1–11).
+ make(2,1,26.6,80.9,12.5,6.8),make(2,2,26.6,69.5,12.5,6.8),make(2,3,29,62.7,12,5.5),make(2,4,37.8,42.7,6.2,7),make(2,5,18,42.7,6.2,7),make(2,6,18,29,6.2,7),make(2,7,18,18.6,12,4.5),make(2,8,22,10,13,4.5),make(2,9,43.5,10,13.5,4.5),make(2,10,65,10,13.5,4.5),make(2,11,71,18.5,6.2,6.5),
 ];
 export const contact={phone:'202-520-9070',sms:'2025209070',secondary:'301-455-9579'};
 export const money=(n:number)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:2}).format(n);
