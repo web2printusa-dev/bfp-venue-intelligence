@@ -8,7 +8,18 @@ const clean = (value: unknown, max = 300) => typeof value === 'string' ? value.t
 
 export async function POST(request: Request) {
   const secret = process.env.STRIPE_SECRET_KEY;
-  if (!secret) return NextResponse.json({ error: 'Secure checkout is not configured yet. Please call 202 Lounge to reserve.' }, { status: 503 });
+  const hasSmsSender = Boolean(process.env.TWILIO_FROM_NUMBER || process.env.TWILIO_MESSAGING_SERVICE_SID);
+  const notificationsReady = Boolean(
+    process.env.STRIPE_WEBHOOK_SECRET &&
+    process.env.RESEND_API_KEY &&
+    process.env.RESERVATION_FROM_EMAIL &&
+    process.env.TWILIO_ACCOUNT_SID &&
+    process.env.TWILIO_AUTH_TOKEN &&
+    hasSmsSender
+  );
+  if (!secret || !notificationsReady) {
+    return NextResponse.json({ error: 'Online deposit checkout is being prepared. Please call 202 Lounge at 202-520-9070 to reserve.' }, { status: 503 });
+  }
 
   try {
     const body = await request.json();
