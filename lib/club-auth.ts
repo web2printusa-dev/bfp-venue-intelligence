@@ -1,6 +1,6 @@
 import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
-import {createHash, scryptSync, timingSafeEqual} from 'node:crypto';
+import {createHash, pbkdf2Sync, timingSafeEqual} from 'node:crypto';
 
 export function adminConfigured(){return Boolean(process.env.ADMIN_EMAIL&&process.env.ADMIN_PASSWORD_HASH&&process.env.AUTH_SECRET);}
 const revision=()=>createHash('sha256').update((process.env.ADMIN_EMAIL||'')+':'+(process.env.ADMIN_PASSWORD_HASH||'')).digest('hex');
@@ -22,7 +22,7 @@ export const {handlers,auth,signIn,signOut}=NextAuth({
       if(attempts.size>1000)attempts.clear();
       attempts.set(email,{count:bucket&&bucket.until>now?bucket.count+1:1,until:bucket&&bucket.until>now?bucket.until:now+15*60*1000});
       const [salt,keyHex]=process.env.ADMIN_PASSWORD_HASH!.split(':');
-      if(!/^[a-f0-9]{32}$/.test(salt||'')||!/^[a-f0-9]{128}$/.test(keyHex||''))return null;
+      if(!/^[a-f0-9]{32}$/.test(salt||'')||!/^[a-f0-9]{64}$/.test(keyHex||''))return null;
       const candidate=scryptSync(password,salt,64);
       const matches=timingSafeEqual(candidate,Buffer.from(keyHex,'hex'));
       if(!matches||email!==process.env.ADMIN_EMAIL!.trim().toLowerCase())return null;
