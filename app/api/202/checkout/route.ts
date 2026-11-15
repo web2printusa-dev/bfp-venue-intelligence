@@ -8,15 +8,7 @@ const clean = (value: unknown, max = 300) => typeof value === 'string' ? value.t
 
 export async function POST(request: Request) {
   const secret = process.env.STRIPE_SECRET_KEY;
-  const hasSmsSender = Boolean(process.env.TWILIO_FROM_NUMBER || process.env.TWILIO_MESSAGING_SERVICE_SID);
-  const notificationsReady = Boolean(
-    process.env.STRIPE_WEBHOOK_SECRET &&
-    process.env.RESEND_API_KEY &&
-    process.env.RESERVATION_FROM_EMAIL &&
-    process.env.TWILIO_ACCOUNT_SID &&
-    process.env.TWILIO_AUTH_TOKEN &&
-    hasSmsSender
-  );
+  const notificationsReady = Boolean(process.env.STRIPE_WEBHOOK_SECRET && process.env.PROSPER_API_KEY);
   if (!secret || !notificationsReady) {
     return NextResponse.json({ error: 'Online deposit checkout is being prepared. Please call 202 Lounge at 202-520-9070 to reserve.' }, { status: 503 });
   }
@@ -63,6 +55,7 @@ export async function POST(request: Request) {
       return bottle && Number.isInteger(count) && count > 0 && count <= 10 ? [{ name: bottle.name, quantity: count }] : [];
     });
     const metadata: Record<string, string> = {
+      booking_type: '202-table-deposit',
       event_id: occurrence.event.id,
       event_name: occurrence.event.artist.slice(0, 100),
       event_date: occurrence.date,
@@ -82,7 +75,6 @@ export async function POST(request: Request) {
 
     const form = new URLSearchParams();
     form.set('mode', 'payment');
-    form.set('payment_method_types[0]', 'card');
     form.set('customer_email', email);
     form.set('client_reference_id', `202-${eventDate}-${Date.now()}`);
     form.set('line_items[0][quantity]', '1');
