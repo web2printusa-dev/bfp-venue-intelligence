@@ -21,7 +21,11 @@ async function crm(path: string, method = 'GET', body?: unknown) {
     cache: 'no-store',
     signal: AbortSignal.timeout(15000),
   });
-  if (!response.ok) throw new Error('Prosper request failed (' + response.status + ')');
+  if (!response.ok) {
+    const stage = path === '/contacts/upsert' ? 'contact' : path.includes('/workflow/') ? 'workflow' : 'notes';
+    console.error('202 Prosper failure', {stage, status: response.status});
+    throw new Error('Prosper request failed (' + response.status + ')');
+  }
   return response.json();
 }
 
