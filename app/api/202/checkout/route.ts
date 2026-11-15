@@ -1,4 +1,3 @@
-import { randomBytes } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { arrivalOptions, bottles, packagesFor, tables, upcomingOccurrences, maxReservationGuests } from '../../../../lib/202-lounge-public';
 
@@ -78,8 +77,7 @@ export async function POST(request: Request) {
 
     const form = new URLSearchParams();
     form.set('mode', 'payment');
-    form.set('ui_mode', 'elements');
-    form.set('integration_identifier', '202-lounge-' + Array.from(randomBytes(8), byte => String.fromCharCode(97 + byte % 26)).join(''));
+    form.set('ui_mode', 'custom');
     form.set('customer_email', email);
     form.set('client_reference_id', `202-${eventDate}-${Date.now()}`);
     form.set('line_items[0][quantity]', '1');
@@ -97,13 +95,13 @@ export async function POST(request: Request) {
 
     const stripeResponse = await fetch('https://api.stripe.com/v1/checkout/sessions', {
       method: 'POST',
-      headers: { Authorization: `Bearer ${secret}`, 'Content-Type': 'application/x-www-form-urlencoded', 'Stripe-Version': '2026-09-30.endive' },
+      headers: { Authorization: `Bearer ${secret}`, 'Content-Type': 'application/x-www-form-urlencoded' },
       body: form,
       cache: 'no-store',
     });
     const session = await stripeResponse.json();
     if (!stripeResponse.ok || !session.client_secret) {
-      console.error('Stripe Checkout session creation failed:', session.error?.type || stripeResponse.status);
+      console.error('Stripe Checkout session creation failed:', {type:session.error?.type,code:session.error?.code,param:session.error?.param,status:stripeResponse.status});
       return NextResponse.json({ error: 'Secure checkout could not be started. Please try again or call 202 Lounge.' }, { status: 502 });
     }
     return NextResponse.json({
