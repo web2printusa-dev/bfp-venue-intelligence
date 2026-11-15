@@ -95,13 +95,13 @@ export async function POST(request: Request) {
 
     const stripeResponse = await fetch('https://api.stripe.com/v1/checkout/sessions', {
       method: 'POST',
-      headers: { Authorization: `Bearer ${secret}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+      headers: { Authorization: `Bearer ${secret}`, 'Content-Type': 'application/x-www-form-urlencoded', 'Stripe-Version': '2025-06-30.basil' },
       body: form,
       cache: 'no-store',
     });
     const session = await stripeResponse.json();
     if (!stripeResponse.ok || !session.client_secret) {
-      console.error('Stripe Checkout session creation failed:', {type:session.error?.type,code:session.error?.code,param:session.error?.param,status:stripeResponse.status});
+      console.error('Stripe Checkout session creation failed:', {type:session.error?.type,code:session.error?.code,param:session.error?.param,message:session.error?.message,status:stripeResponse.status});
       return NextResponse.json({ error: 'Secure checkout could not be started. Please try again or call 202 Lounge.' }, { status: 502 });
     }
     return NextResponse.json({
