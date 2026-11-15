@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { arrivalOptions, bottles, packagesFor, tables, upcomingOccurrences, maxReservationGuests } from '../../../../lib/202-lounge-public';
 
@@ -10,7 +11,7 @@ export async function POST(request: Request) {
   const secret = process.env.STRIPE_SECRET_KEY;
   // Manual verification mode: reservation details remain in Stripe metadata.
   // Automatic CRM fulfillment starts only after a signed webhook is configured.
-  if (!secret) {
+  if (!secret || !process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
     return NextResponse.json({ error: 'Online deposit checkout is being prepared. Please call 202 Lounge at 202-520-9070 to reserve.' }, { status: 503 });
   }
 
@@ -77,6 +78,8 @@ export async function POST(request: Request) {
 
     const form = new URLSearchParams();
     form.set('mode', 'payment');
+    form.set('ui_mode', 'elements');
+    form.set('integration_identifier', '202-lounge-' + Array.from(randomBytes(8), byte => String.fromCharCode(97 + byte % 26)).join(''));
     form.set('customer_email', email);
     form.set('client_reference_id', `202-${eventDate}-${Date.now()}`);
     form.set('line_items[0][quantity]', '1');
@@ -85,8 +88,7 @@ export async function POST(request: Request) {
     form.set('line_items[0][price_data][product_data][name]', '202 Lounge Reservation Deposit');
     form.set('line_items[0][price_data][product_data][description]', `$250 deposit for ${occurrence.event.artist} on ${occurrence.date}. Any remaining balance is confirmed by the club and paid directly to 202 Lounge.`);
     const siteOrigin = new URL(request.url).origin;
-    form.set('success_url', `${siteOrigin}/reserve/confirmation?session_id={CHECKOUT_SESSION_ID}`);
-    form.set('cancel_url', new URL(`/reserve?night=${encodeURIComponent(occurrence.event.id)}&payment=cancelled`, request.url).toString());
+    form.set('return_url', `${siteOrigin}/reserve/confirmation?session_id={CHECKOUT_SESSION_ID}`);
     form.set('submit_type', 'book');
     Object.entries(metadata).forEach(([key, value]) => {
       form.set(`metadata[${key}]`, value);
@@ -95,16 +97,21 @@ export async function POST(request: Request) {
 
     const stripeResponse = await fetch('https://api.stripe.com/v1/checkout/sessions', {
       method: 'POST',
-      headers: { Authorization: `Bearer ${secret}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+      headers: { Authorization: `Bearer ${secret}`, 'Content-Type': 'application/x-www-form-urlencoded', 'Stripe-Version': '2026-09-30.endive' },
       body: form,
       cache: 'no-store',
     });
     const session = await stripeResponse.json();
-    if (!stripeResponse.ok || !session.url) {
+    if (!stripeResponse.ok || !session.client_secret) {
       console.error('Stripe Checkout session creation failed:', session.error?.type || stripeResponse.status);
       return NextResponse.json({ error: 'Secure checkout could not be started. Please try again or call 202 Lounge.' }, { status: 502 });
     }
-    return NextResponse.json({ url: session.url });
+    return NextResponse.json({
+      clientSecret: session.client_secret, expiresAt: session.expires_at,
+      reservation: {event: occurrence.event.artist, date: occurrence.date, image: occurrence.event.image,
+        floor: metadata.floor, table: tableNumber || null, guests, package: selectedPackage.name,
+        arrival: allowedArrivals.find(item => item.value === arrival)?.label || arrival, name, email}
+    }, {headers: {'Cache-Control': 'no-store'}});
   } catch (error) {
     console.error('Reservation checkout request failed:', error instanceof Error ? error.message : 'unknown error');
     return NextResponse.json({ error: 'We could not start checkout. Please check your reservation details and try again.' }, { status: 400 });
