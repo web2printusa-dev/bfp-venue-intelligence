@@ -87,7 +87,6 @@ export async function POST(request: Request) {
     form.set('line_items[0][price_data][product_data][description]', `$250 deposit for ${occurrence.event.artist} on ${occurrence.date}. Any remaining balance is confirmed by the club and paid directly to 202 Lounge.`);
     const siteOrigin = new URL(request.url).origin;
     form.set('return_url', `${siteOrigin}/reserve/confirmation?session_id={CHECKOUT_SESSION_ID}`);
-    form.set('submit_type', 'book');
     Object.entries(metadata).forEach(([key, value]) => {
       form.set(`metadata[${key}]`, value);
       form.set(`payment_intent_data[metadata][${key}]`, value);
