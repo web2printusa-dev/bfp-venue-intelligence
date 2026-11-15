@@ -79,7 +79,8 @@ export async function POST(request: Request) {
     form.set('line_items[0][price_data][unit_amount]', String(DEPOSIT_CENTS));
     form.set('line_items[0][price_data][product_data][name]', '202 Lounge Reservation Deposit');
     form.set('line_items[0][price_data][product_data][description]', `$250 deposit for ${occurrence.event.artist} on ${occurrence.date}. Any remaining balance is confirmed by the club and paid directly to 202 Lounge.`);
-    form.set('success_url', new URL('/reserve/confirmation?session_id={CHECKOUT_SESSION_ID}', request.url).toString());
+    const siteOrigin = new URL(request.url).origin;
+    form.set('success_url', `${siteOrigin}/reserve/confirmation?session_id={CHECKOUT_SESSION_ID}`);
     form.set('cancel_url', new URL(`/reserve?night=${encodeURIComponent(occurrence.event.id)}&payment=cancelled`, request.url).toString());
     form.set('submit_type', 'book');
     Object.entries(metadata).forEach(([key, value]) => {
