@@ -8,8 +8,9 @@ const clean = (value: unknown, max = 300) => typeof value === 'string' ? value.t
 
 export async function POST(request: Request) {
   const secret = process.env.STRIPE_SECRET_KEY;
-  const notificationsReady = Boolean(process.env.STRIPE_WEBHOOK_SECRET && process.env.PROSPER_API_KEY);
-  if (!secret || !notificationsReady) {
+  // Manual verification mode: reservation details remain in Stripe metadata.
+  // Automatic CRM fulfillment starts only after a signed webhook is configured.
+  if (!secret) {
     return NextResponse.json({ error: 'Online deposit checkout is being prepared. Please call 202 Lounge at 202-520-9070 to reserve.' }, { status: 503 });
   }
 
@@ -56,6 +57,7 @@ export async function POST(request: Request) {
     });
     const metadata: Record<string, string> = {
       booking_type: '202-table-deposit',
+      fulfillment_mode: process.env.STRIPE_WEBHOOK_SECRET && process.env.PROSPER_API_KEY ? 'automatic' : 'manual',
       event_id: occurrence.event.id,
       event_name: occurrence.event.artist.slice(0, 100),
       event_date: occurrence.date,
