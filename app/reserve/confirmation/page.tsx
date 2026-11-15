@@ -12,7 +12,7 @@ export default async function ReservationConfirmation({ searchParams }: { search
         cache: 'no-store',
       });
       const session = response.ok ? await response.json() : null;
-      paid = session?.payment_status === 'paid' && session?.amount_total === 25000;
+      paid = session?.payment_status === 'paid' && session?.amount_total === 25000 && session?.currency === 'usd' && session?.metadata?.booking_type === '202-table-deposit';
     } catch { paid = false; }
   }
 
@@ -20,7 +20,7 @@ export default async function ReservationConfirmation({ searchParams }: { search
     <section style={{ width: 'min(100%, 620px)', border: '1px solid #b8a46e', borderRadius: 18, padding: 'clamp(28px, 6vw, 56px)', background: '#12120f' }}>
       <p style={{ color: '#c4f432', letterSpacing: '.16em', fontSize: 12, fontWeight: 700 }}>202 LOUNGE · RESERVATIONS</p>
       <h1 style={{ fontSize: 'clamp(32px, 6vw, 54px)', lineHeight: 1, margin: '18px 0' }}>{paid ? 'Deposit received.' : 'Payment not confirmed.'}</h1>
-      <p style={{ color: '#d0cec5', fontSize: 18, lineHeight: 1.6 }}>{paid ? 'Your $250 reservation deposit was paid. 202 Lounge will contact you to confirm table availability and any remaining balance.' : 'We could not verify a completed payment. If you completed checkout, contact 202 Lounge at 202-520-9070.'}</p>
+      <p style={{ color: '#d0cec5', fontSize: 18, lineHeight: 1.6 }}>{paid ? 'Your $250 deposit was paid. Your table is not yet confirmed. Please text 202-520-9070 with your name and event night so 202 Lounge can verify your deposit, table availability and remaining balance.' : 'We could not verify a completed payment. If you completed checkout, contact 202 Lounge at 202-520-9070.'}</p>
       <p style={{ marginTop: 30 }}><Link href="/#events" style={{ color: '#c4f432', fontWeight: 700, textDecoration: 'none' }}>Back to 202 Lounge events →</Link></p>
     </section>
   </main>;
