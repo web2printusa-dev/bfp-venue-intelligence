@@ -23,7 +23,7 @@ export const {handlers,auth,signIn,signOut}=NextAuth({
       attempts.set(email,{count:bucket&&bucket.until>now?bucket.count+1:1,until:bucket&&bucket.until>now?bucket.until:now+15*60*1000});
       const [salt,keyHex]=process.env.ADMIN_PASSWORD_HASH!.split(':');
       if(!/^[a-f0-9]{32}$/.test(salt||'')||!/^[a-f0-9]{64}$/.test(keyHex||''))return null;
-      const candidate=scryptSync(password,salt,64);
+      const candidate=pbkdf2Sync(password,Buffer.from(salt,'hex'),600000,32,'sha256');
       const matches=timingSafeEqual(candidate,Buffer.from(keyHex,'hex'));
       if(!matches||email!==process.env.ADMIN_EMAIL!.trim().toLowerCase())return null;
       attempts.delete(email);
