@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { NextResponse } from 'next/server';
+import { saveClubSubmission } from '../../../../lib/202-prosper';
 
 export const runtime = 'nodejs';
 
@@ -16,71 +17,6 @@ function verifyStripeSignature(payload: string, signatureHeader: string, secret:
       return a.length === b.length && timingSafeEqual(a, b);
     } catch { return false; }
   });
-}
-
-async function sendClubEmail(session: any, eventId: string) {
-  const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.RESERVATION_FROM_EMAIL;
-  const to = process.env.CLUB_RESERVATION_EMAIL || '202loungemedia@gmail.com';
-  if (!apiKey || !from) throw new Error('Reservation email is not configured');
-  const m = session.metadata || {};
-  const lines = [
-    'A $250 reservation deposit was paid for 202 Lounge.',
-    '',
-    `Event: ${m.event_name || '—'}`,
-    `Date: ${m.event_date || '—'}`,
-    `Floor: ${m.floor || '—'}`,
-    `Preferred table: ${m.table || '—'}`,
-    `Guests: ${m.guest_count || '—'}`,
-    `Occasion: ${m.occasion || '—'}`,
-    `Package: ${m.package || '—'} — ${m.package_details || ''}`,
-    `Bottle add-ons: ${m.extras || 'None'}`,
-    `Arrival: ${m.arrival_time || '—'}`,
-    `Guest: ${m.guest_name || '—'}`,
-    `Guest mobile: ${m.guest_phone || '—'}`,
-    `Guest email: ${m.guest_email || '—'}`,
-    `Special requests: ${m.special_requests || 'None'}`,
-    '',
-    `Stripe payment: ${session.payment_intent || session.id}`,
-    'Confirm availability and any remaining balance directly with the guest.',
-  ];
-  const result = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json', 'Idempotency-Key': `${eventId}-club-email` },
-    body: JSON.stringify({ from, to, subject: `Paid 202 table reservation · ${m.event_date || ''} · ${m.guest_name || ''}`, text: lines.join('\n') }),
-    cache: 'no-store',
-  });
-  if (!result.ok) throw new Error(`Reservation email failed (${result.status})`);
-}
-
-async function sendClubText(session: any) {
-  const accountSid = process.env.TWILIO_ACCOUNT_SID;
-  const authToken = process.env.TWILIO_AUTH_TOKEN;
-  const from = process.env.TWILIO_FROM_NUMBER;
-  const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID;
-  if (!accountSid || !authToken || (!from && !messagingServiceSid)) throw new Error('Reservation SMS is not configured');
-  const m = session.metadata || {};
-  const body = [
-    '$250 deposit PAID — 202 Lounge reservation',
-    `${m.event_name || 'Event'} · ${m.event_date || ''}`,
-    `${m.floor || ''} · Table ${m.table || 'host selection'} · ${m.guest_count || '?'} guests`,
-    `Package: ${m.package || '—'}`,
-    `Arrival: ${m.arrival_time || 'TBC'}`,
-    `Guest: ${m.guest_name || '—'} · ${m.guest_phone || '—'}`,
-    `Email: ${m.guest_email || '—'}`,
-    m.special_requests ? `Notes: ${m.special_requests}` : '',
-  ].filter(Boolean).join('\n').slice(0, 1500);
-  const form = new URLSearchParams({ To: process.env.CLUB_RESERVATION_PHONE || '+12025209070', Body: body });
-  if (messagingServiceSid) form.set('MessagingServiceSid', messagingServiceSid);
-  else form.set('From', from!);
-  const authorization = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
-  const result = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
-    method: 'POST',
-    headers: { Authorization: `Basic ${authorization}`, 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: form,
-    cache: 'no-store',
-  });
-  if (!result.ok) throw new Error(`Reservation SMS failed (${result.status})`);
 }
 
 async function setDeliveryFlag(sessionId: string, key: string) {
@@ -125,13 +61,28 @@ export async function POST(request: Request) {
   try {
     const session = await readCurrentSession(incoming.id);
     if (session.payment_status !== 'paid') return NextResponse.json({ received: true, pending: true });
-    if (!session.metadata?.club_email_sent) {
-      await sendClubEmail(session, event.id);
-      await setDeliveryFlag(session.id, 'club_email_sent');
+    if (session.metadata?.booking_type !== '202-table-deposit' || session.amount_total !== 25000 || session.currency !== 'usd') {
+      return NextResponse.json({ received: true, unrelated: true });
     }
-    if (!session.metadata?.club_sms_sent) {
-      await sendClubText(session);
-      await setDeliveryFlag(session.id, 'club_sms_sent');
+    if (!session.metadata?.prosper_synced) {
+      const m = session.metadata;
+      const details = [
+        '202 LOUNGE — $250 DEPOSIT PAID',
+        'Reservation reference: ' + session.id,
+        'Event: ' + m.event_name + ' · ' + m.event_date,
+        'Floor: ' + m.floor + ' · Preferred table: ' + m.table,
+        'Guests: ' + m.guest_count + ' · Occasion: ' + m.occasion,
+        'Package: ' + m.package + ' — ' + m.package_details,
+        'Extra bottles: ' + m.extras,
+        'Arrival: ' + m.arrival_time,
+        'Guest: ' + m.guest_name + ' · ' + m.guest_phone + ' · ' + m.guest_email,
+        'Requests: ' + (m.special_requests || 'None'),
+        'Stripe payment: ' + session.payment_intent,
+        'Confirm table availability and any balance directly with the guest.',
+      ].join('\n');
+      await saveClubSubmission({ kind: 'reservation', reference: session.id,
+        name: m.guest_name, email: m.guest_email, phone: m.guest_phone, details });
+      await setDeliveryFlag(session.id, 'prosper_synced');
     }
     return NextResponse.json({ received: true });
   } catch (error) {
