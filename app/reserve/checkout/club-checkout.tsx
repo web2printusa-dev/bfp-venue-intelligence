@@ -13,9 +13,10 @@ type StripeElement = {mount:(target:string)=>void;destroy:()=>void};
 type Checkout = {
   createPaymentElement:()=>StripeElement;
   on:(event:'change',handler:(session:Session)=>void)=>void;
-  loadActions:()=>Promise<{type:string;actions?:Actions;error?:{message?:string}}>;
+  loadActions?:()=>Promise<{type:string;actions?:Actions;error?:{message?:string}}>;
+  confirm?:()=>Promise<ConfirmResult>;
 };
-type StripeClient = {initCheckoutElementsSdk:(options:unknown)=>Checkout};
+type StripeClient = {initCheckoutElementsSdk?:(options:unknown)=>Checkout;initCheckout?:(options:unknown)=>Checkout};
 declare global {interface Window {Stripe?:(key:string)=>StripeClient}}
 
 export default function ClubCheckout({publishableKey}:{publishableKey:string}) {
@@ -47,7 +48,10 @@ export default function ClubCheckout({publishableKey}:{publishableKey:string}) {
     let cancelled=false;
     let payment:StripeElement|undefined;
     try {
-      const checkout=window.Stripe(publishableKey).initCheckoutElementsSdk({
+      const stripe=window.Stripe(publishableKey);
+      const initialize=stripe.initCheckoutElementsSdk||stripe.initCheckout;
+      if(!initialize)throw new Error('Checkout SDK unavailable');
+      const checkout=initialize.call(stripe,{
         clientSecret:booking.clientSecret,
         elementsOptions:{appearance:{theme:'night',variables:{
           colorPrimary:'#c4f432',colorBackground:'#141613',colorText:'#f4f1e9',
@@ -63,7 +67,10 @@ export default function ClubCheckout({publishableKey}:{publishableKey:string}) {
       });
       payment=checkout.createPaymentElement();
       payment.mount('#club-payment-element');
-      checkout.loadActions().then(result=>{
+      if(!checkout.loadActions){
+        if(!checkout.confirm)throw new Error('Checkout actions unavailable');
+        actionsRef.current={confirm:()=>checkout.confirm!()};setLoading(false);
+      }else checkout.loadActions().then(result=>{
         if(cancelled)return;
         if(result.type==='success'&&result.actions){actionsRef.current=result.actions;setLoading(false);}
         else {setError(result.error?.message||'Unable to load secure checkout. Please return to your event and try again.');setLoading(false);}
@@ -84,7 +91,7 @@ export default function ClubCheckout({publishableKey}:{publishableKey:string}) {
   const r=booking?.reservation;
   const night=r?new Intl.DateTimeFormat('en-US',{weekday:'long',month:'long',day:'numeric',timeZone:'UTC'}).format(new Date(r.date+'T12:00:00Z')):'';
   return <main className={styles.page}>
-    <Script src="https://js.stripe.com/endive/stripe.js" strategy="afterInteractive" onReady={()=>setScriptReady(true)} onError={()=>{setError('Secure payment fields could not load. Check your connection and reload.');setLoading(false);}}/>
+    <Script src="https://js.stripe.com/v3/" strategy="afterInteractive" onReady={()=>setScriptReady(true)} onError={()=>{setError('Secure payment fields could not load. Check your connection and reload.');setLoading(false);}}/>
     <header className={styles.header}><Link href="/" aria-label="202 Lounge home"><img src="/202/logo.webp" alt="202 Lounge — The Experience"/></Link><Link href="/#events" className={styles.back}>← Back to events</Link></header>
     <div className={styles.layout}>
       <section className={styles.summary} aria-label="Reservation summary">
