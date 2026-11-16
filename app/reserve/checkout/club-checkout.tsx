@@ -31,7 +31,7 @@ export default function ClubCheckout({publishableKey}:{publishableKey:string}) {
   const [canPay,setCanPay]=useState(false);
   const [walletsAvailable,setWalletsAvailable]=useState(false);
   const [paying,setPaying]=useState(false);
-  const [amount,setAmount]=useState('$250.00');
+  const [amount,setAmount]=useState('$100.00');
   const actionsRef=useRef<Actions|null>(null);
   const submittingRef=useRef(false);
   useEffect(()=>{
