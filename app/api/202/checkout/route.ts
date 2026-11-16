@@ -77,7 +77,7 @@ export async function POST(request: Request) {
 
     const form = new URLSearchParams();
     form.set('mode', 'payment');
-    form.set('ui_mode', 'custom');
+    form.set('ui_mode', 'elements');
     form.set('customer_email', email);
     form.set('client_reference_id', `202-${eventDate}-${Date.now()}`);
     form.set('line_items[0][quantity]', '1');
