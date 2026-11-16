@@ -8,10 +8,14 @@ import styles from './checkout.module.css';
 type Booking = {clientSecret:string; expiresAt:number; reservation:{event:string;date:string;image:string;floor:string;table:number|null;guests:number;package:string;arrival:string;name:string;email:string}};
 type Session = {canConfirm:boolean;total:{total:{amount:string}}};
 type ConfirmResult = {type:string;error?:{message?:string;code?:string}};
-type Actions = {confirm:()=>Promise<ConfirmResult>};
+type ExpressConfirmEvent = {paymentFailed:(payload?:{reason?:'fail';message?:string})=>void;[key:string]:unknown};
+type ExpressReadyEvent = {availablePaymentMethods?:{applePay?:boolean;googlePay?:boolean}};
+type Actions = {confirm:(options?:{expressCheckoutConfirmEvent?:ExpressConfirmEvent})=>Promise<ConfirmResult>};
 type StripeElement = {mount:(target:string)=>void;destroy:()=>void};
+type ExpressCheckoutElement = StripeElement & {on(event:'ready',handler:(event:ExpressReadyEvent)=>void):void;on(event:'confirm',handler:(event:ExpressConfirmEvent)=>void):void};
 type Checkout = {
   createPaymentElement:()=>StripeElement;
+  createExpressCheckoutElement?:(options:unknown)=>ExpressCheckoutElement;
   on:(event:'change',handler:(session:Session)=>void)=>void;
   loadActions?:()=>Promise<{type:string;actions?:Actions;error?:{message?:string;code?:string}}>;
   confirm?:()=>Promise<ConfirmResult>;
@@ -25,6 +29,7 @@ export default function ClubCheckout({publishableKey}:{publishableKey:string}) {
   const [loading,setLoading]=useState(true);
   const [error,setError]=useState('');
   const [canPay,setCanPay]=useState(false);
+  const [walletsAvailable,setWalletsAvailable]=useState(false);
   const [paying,setPaying]=useState(false);
   const [amount,setAmount]=useState('$250.00');
   const actionsRef=useRef<Actions|null>(null);
@@ -44,9 +49,10 @@ export default function ClubCheckout({publishableKey}:{publishableKey:string}) {
   },[]);
   useEffect(()=>{
     if(!scriptReady||!booking)return;
-    if(!publishableKey||!window.Stripe){setError('Secure payments are temporarily unavailable. Please call 202-520-9070.');setLoading(false);return;}
+    if(!publishableKey||!window.Stripe){setError('Secure payments are temporarily unavailable. Please return to your reservation and try again.');setLoading(false);return;}
     let cancelled=false;
     let payment:StripeElement|undefined;
+    let express:ExpressCheckoutElement|undefined;
     try {
       const stripe=window.Stripe(publishableKey);
       const initialize=stripe.initCheckoutElementsSdk||stripe.initCheckout;
@@ -66,6 +72,35 @@ export default function ClubCheckout({publishableKey}:{publishableKey:string}) {
         setAmount(session.total.total.amount);
         setCanPay(session.canConfirm);
       });
+      if(checkout.createExpressCheckoutElement){
+        express=checkout.createExpressCheckoutElement({
+          paymentMethods:{applePay:'always',googlePay:'always',link:'never',amazonPay:'never',paypal:'never',klarna:'never'},
+          buttonHeight:52,
+          buttonTheme:{applePay:'white',googlePay:'white'},
+          buttonType:{applePay:'check-out',googlePay:'pay'},
+          layout:{maxColumns:2,maxRows:1,overflow:'never'}
+        });
+        express.on('ready',event=>{
+          if(cancelled)return;
+          const available=(event as ExpressReadyEvent).availablePaymentMethods;
+          setWalletsAvailable(Boolean(available?.applePay||available?.googlePay));
+        });
+        express.on('confirm',async event=>{
+          if(submittingRef.current||!actionsRef.current)return;
+          submittingRef.current=true;setPaying(true);setError('');
+          try{
+            const result=await actionsRef.current.confirm({expressCheckoutConfirmEvent:event as ExpressConfirmEvent});
+            if(result.type==='error'){
+              (event as ExpressConfirmEvent).paymentFailed({reason:'fail',message:result.error?.message});
+              setError(result.error?.message||'Wallet payment could not be confirmed. Please try again.');
+            }
+          }catch{
+            (event as ExpressConfirmEvent).paymentFailed({reason:'fail'});
+            setError('Wallet payment could not be confirmed. Please try again.');
+          }finally{submittingRef.current=false;setPaying(false);}
+        });
+        express.mount('#club-express-checkout');
+      }
       payment=checkout.createPaymentElement();
       payment.mount('#club-payment-element');
       if(!checkout.loadActions){
@@ -81,7 +116,7 @@ export default function ClubCheckout({publishableKey}:{publishableKey:string}) {
         }
       }).catch(error=>{if(!cancelled){console.error('Stripe Checkout loadActions rejected', error instanceof Error?error.message:'unknown');setError('Unable to load secure checkout. Please try again.');setLoading(false);}});
     }catch(error) {console.error('Stripe Checkout initialization failed',error instanceof Error?error.message:'unknown');setError('Unable to load secure checkout. Please return to your event and try again.');setLoading(false);}
-    return()=>{cancelled=true;actionsRef.current=null;payment?.destroy();};
+    return()=>{cancelled=true;actionsRef.current=null;express?.destroy();payment?.destroy();};
   },[scriptReady,booking,publishableKey]);
 
   async function pay(){
@@ -116,11 +151,13 @@ export default function ClubCheckout({publishableKey}:{publishableKey:string}) {
         <h2>LOCK IN<br/>YOUR PLANS.</h2>
         <p className={styles.intro}>Pay your deposit securely. Let the night begin.</p>
         {loading&&<p className={styles.loading} role="status">Loading secure payment options…</p>}
+        <div id="club-express-checkout" className={styles.expressElement}/>
+        {walletsAvailable&&<p className={styles.walletLabel}>OR CHOOSE ANOTHER WAY TO PAY</p>}
         <div id="club-payment-element" className={styles.element}/>
         {error&&<p className={styles.error} role="alert">{error}</p>}
         {booking&&<button className={styles.pay} type="button" disabled={loading||!canPay||paying} onClick={pay}>{paying?'PROCESSING…':'PAY '+amount+' DEPOSIT'}<span aria-hidden="true">↗</span></button>}
         <p className={styles.protected}>Payment details are encrypted and processed by Stripe.</p>
-        <div className={styles.help}><span>Questions before you pay?</span><a href="sms:2025209070">Text 202-520-9070 ↗</a></div>
+
         {!booking&&<Link href="/#events" className={styles.return}>Choose your event →</Link>}
       </section>
     </div>
