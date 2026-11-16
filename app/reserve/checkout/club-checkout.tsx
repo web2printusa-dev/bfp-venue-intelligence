@@ -57,7 +57,7 @@ export default function ClubCheckout({publishableKey}:{publishableKey:string}) {
           colorPrimary:'#c4f432',colorBackground:'#141613',colorText:'#f4f1e9',
           colorDanger:'#ff9e9e',fontFamily:'Arial, Helvetica, sans-serif',fontSizeBase:'16px',
           borderRadius:'10px',spacingUnit:'5px'
-        },rules:{'.Input':{border:'1px solid #464a40'},'.Label':{fontWeight:'600'}}}}
+        }}}
       });
       console.info('Stripe checkout initialized', {publishableKeyMode:publishableKey.startsWith('pk_live_')?'live':publishableKey.startsWith('pk_test_')?'test':'unknown'});
       checkout.on('change',session=>{
@@ -80,7 +80,7 @@ export default function ClubCheckout({publishableKey}:{publishableKey:string}) {
           setLoading(false);
         }
       }).catch(error=>{if(!cancelled){console.error('Stripe Checkout loadActions rejected', error instanceof Error?error.message:'unknown');setError('Unable to load secure checkout. Please try again.');setLoading(false);}});
-    }catch {setError('Unable to load secure checkout. Please return to your event and try again.');setLoading(false);}
+    }catch(error) {console.error('Stripe Checkout initialization failed',error instanceof Error?error.message:'unknown');setError('Unable to load secure checkout. Please return to your event and try again.');setLoading(false);}
     return()=>{cancelled=true;actionsRef.current=null;payment?.destroy();};
   },[scriptReady,booking,publishableKey]);
 
