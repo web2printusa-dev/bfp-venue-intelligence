@@ -7,7 +7,7 @@ import styles from './checkout.module.css';
 
 type Booking = {clientSecret:string; expiresAt:number; reservation:{event:string;date:string;image:string;floor:string;table:number|null;guests:number;package:string;arrival:string;name:string;email:string}};
 type Session = {canConfirm:boolean;total:{total:{amount:string}}};
-type ConfirmResult = {type:string;error?:{message?:string}};
+type ConfirmResult = {type:string;error?:{message?:string;code?:string}};
 type Actions = {confirm:()=>Promise<ConfirmResult>};
 type StripeElement = {mount:(target:string)=>void;destroy:()=>void};
 type Checkout = {
@@ -59,6 +59,7 @@ export default function ClubCheckout({publishableKey}:{publishableKey:string}) {
           borderRadius:'10px',spacingUnit:'5px'
         },rules:{'.Input':{border:'1px solid #464a40'},'.Label':{fontWeight:'600'}}}}
       });
+      console.info('Stripe checkout initialized', {publishableKeyMode:publishableKey.startsWith('pk_live_')?'live':publishableKey.startsWith('pk_test_')?'test':'unknown'});
       checkout.on('change',session=>{
         if(cancelled)return;
         // Read the Stripe total for both the summary and the payment button.
@@ -73,8 +74,12 @@ export default function ClubCheckout({publishableKey}:{publishableKey:string}) {
       }else checkout.loadActions().then(result=>{
         if(cancelled)return;
         if(result.type==='success'&&result.actions){actionsRef.current=result.actions;setLoading(false);}
-        else {setError(result.error?.message||'Unable to load secure checkout. Please return to your event and try again.');setLoading(false);}
-      }).catch(()=>{if(!cancelled){setError('Unable to load secure checkout. Please try again.');setLoading(false);}});
+        else {
+          console.error('Stripe Checkout loadActions failed', {type:result.type,code:result.error?.code,message:result.error?.message});
+          setError(result.error?.message||'Unable to load secure checkout. Please return to your event and try again.');
+          setLoading(false);
+        }
+      }).catch(error=>{if(!cancelled){console.error('Stripe Checkout loadActions rejected', error instanceof Error?error.message:'unknown');setError('Unable to load secure checkout. Please try again.');setLoading(false);}});
     }catch {setError('Unable to load secure checkout. Please return to your event and try again.');setLoading(false);}
     return()=>{cancelled=true;actionsRef.current=null;payment?.destroy();};
   },[scriptReady,booking,publishableKey]);

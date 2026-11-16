@@ -103,6 +103,10 @@ export async function POST(request: Request) {
       console.error('Stripe Checkout session creation failed:', {type:session.error?.type,code:session.error?.code,param:session.error?.param,message:session.error?.message,status:stripeResponse.status});
       return NextResponse.json({ error: 'Secure checkout could not be started. Please try again or call 202 Lounge.' }, { status: 502 });
     }
+    console.info('Stripe checkout session created', {
+      sessionMode: session.livemode ? 'live' : 'test',
+      publishableKeyMode: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.startsWith('pk_live_') ? 'live' : 'test',
+    });
     return NextResponse.json({
       clientSecret: session.client_secret, expiresAt: session.expires_at,
       reservation: {event: occurrence.event.artist, date: occurrence.date, image: occurrence.event.image,
