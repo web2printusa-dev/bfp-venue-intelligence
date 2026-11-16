@@ -1,12 +1,16 @@
 import type { Metadata, Viewport } from 'next';
+import Script from 'next/script';
 import './globals.css';
 import './venue-media.css';
 import './mobile-production.css';
+import './202-content.css';
 
 const siteUrl = 'https://bfp-venue-os-202-lounge.vercel.app';
 const shareImage = 'https://images.pexels.com/photos/14528845/pexels-photo-14528845.jpeg?auto=compress&cs=tinysrgb&w=1200&h=630&fit=crop';
 
-export const viewport: Viewport = { width: 'device-width', initialScale: 1, maximumScale: 1 };\n\nexport const metadata: Metadata = {
+export const viewport: Viewport = { width: 'device-width', initialScale: 1, maximumScale: 1 };
+
+export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: '202 Lounge — Venue Intelligence Demo',
   description: 'Experience the next generation of nightlife: events, table reservations, bottle service and an AI-powered VIP concierge.',
@@ -30,7 +34,15 @@ export const viewport: Viewport = { width: 'device-width', initialScale: 1, maxi
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        {children}
+        <Script
+          src="https://widgets.leadconnectorhq.com/loader.js"
+          data-resources-url="https://widgets.leadconnectorhq.com/chat-widget/loader.js"
+          data-widget-id="6afa49838a274b7ef6f25c5b"
+          strategy="afterInteractive"
+        />
+      </body>
     </html>
   );
 }

@@ -1,3 +1,4 @@
+import {auth,adminConfigured} from '../../../lib/club-auth';
 import { NextResponse } from 'next/server';
 import { dashboard } from '../../../lib/demo-store';
 import { venueConfig } from '../../../lib/venue-config';
@@ -29,6 +30,7 @@ function responseExtras(text:string){
 }
 
 export async function POST(req:Request){
+  if(!adminConfigured()||!(await auth())?.user)return Response.json({error:"Unauthorized"},{status:401});
  const {message}=await req.json();
  const q=String(message||'').trim();
  if(!q)return NextResponse.json({reply:'Ask me what is happening across the venue, guests, marketing or revenue.',...responseExtras('')});

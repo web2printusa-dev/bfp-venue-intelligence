@@ -1,3 +1,4 @@
+import {auth,adminConfigured} from '../../../lib/club-auth';
 import {NextResponse} from 'next/server';
 
 const ACTIONS:Record<string,{title:string,result:string,detail:string,metric?:{label:string;value:string}}>={
@@ -11,6 +12,7 @@ const ACTIONS:Record<string,{title:string,result:string,detail:string,metric?:{l
 };
 
 export async function POST(req:Request){
+  if(!adminConfigured()||!(await auth())?.user)return Response.json({error:"Unauthorized"},{status:401});
  const body=await req.json();
  const id=String(body?.action||'');
  const item=ACTIONS[id];

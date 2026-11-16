@@ -1,0 +1,138 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { events, tables, bottles, packagesFor, customPackage, contact, money, arrivalOptions, maxReservationGuests, type ClubEvent, type ClubTable, type Occurrence } from '../../lib/202-lounge-public';
+
+type Msg={role:'ai'|'user';text:string};
+type Action={type:'tickets'|'tables'|'tableCheckout'|'concierge';label:string;event?:string;experience?:string;tableId?:string};
+const floors=[{id:1,name:'First Floor',image:'/202/floor1.webp'},{id:2,name:'Second Floor · Aura Room',image:'/202/floor2.webp'}];
+
+function Modal({title,onClose,children}:{title:string;onClose:()=>void;children:React.ReactNode}){
+ const ref=useRef<HTMLDivElement>(null);
+ const closeRef=useRef(onClose);closeRef.current=onClose;
+ useEffect(()=>{
+  const previous=document.activeElement as HTMLElement|null;
+  const overflow=document.body.style.overflow;document.body.style.overflow='hidden';
+  const node=ref.current;node?.querySelector<HTMLElement>('button,a,input,select,textarea')?.focus();
+  function key(e:KeyboardEvent){
+   if(e.key==='Escape')closeRef.current();
+   if(e.key!=='Tab'||!node)return;
+   const items=Array.from(node.querySelectorAll<HTMLElement>('button:not([disabled]),a[href],input,select,textarea')).filter(n=>n.offsetParent!==null);
+   if(!items.length)return;
+   if(e.shiftKey&&document.activeElement===items[0]){e.preventDefault();items[items.length-1].focus();}
+   else if(!e.shiftKey&&document.activeElement===items[items.length-1]){e.preventDefault();items[0].focus();}
+  }
+  document.addEventListener('keydown',key);
+  return()=>{document.body.style.overflow=overflow;document.removeEventListener('keydown',key);previous?.focus();};
+ },[]);
+ return <div className="overlay clubOverlay" onClick={onClose}><div ref={ref} className="booking clubDialog" role="dialog" aria-modal="true" aria-label={title} onClick={e=>e.stopPropagation()}><button className="close" onClick={onClose} aria-label="Close dialog">×</button>{children}</div></div>;
+}
+
+export default function Home({initialDates,bookingOnly=false,initialNightId}:{initialDates:Occurrence[];bookingOnly?:boolean;initialNightId?:string}){
+ const router=useRouter();
+ const [dates]=useState<Occurrence[]>(initialDates);
+ const [nightKey]=useState(()=>bookingOnly?initialDates.find(d=>d.event.id===initialNightId)?.key||'':'');
+ const occurrence=dates.find(d=>d.key===nightKey)||dates[0];
+ const hasNight=Boolean(nightKey&&dates.some(d=>d.key===nightKey));
+ const [floor,setFloor]=useState(1),[guests,setGuests]=useState(4),[experience,setExperience]=useState('Bottle Service');
+ const [selected,setSelected]=useState<ClubTable|null>(null),[step,setStep]=useState(1),[packageId,setPackageId]=useState(''),[extraBottles,setExtraBottles]=useState<Record<string,number>>({});
+ const [name,setName]=useState(''),[email,setEmail]=useState(''),[phone,setPhone]=useState(''),[arrival,setArrival]=useState(''),[notes,setNotes]=useState('');
+ const [ticketEvent,setTicketEvent]=useState<ClubEvent|null>(null),[flyer,setFlyer]=useState<{src:string;title:string}|null>(null),[menu,setMenu]=useState(false);
+ const [checkoutBusy,setCheckoutBusy]=useState(false),[checkoutError,setCheckoutError]=useState('');
+ const [concierge,setConcierge]=useState(false),[messages,setMessages]=useState<Msg[]>([{role:'ai',text:'Welcome to 202 Lounge. I can help with the weekly nights, birthday offers, bottle menu and a table request. Which night are you planning?'}]),[input,setInput]=useState(''),[busy,setBusy]=useState(false),[actions,setActions]=useState<Action[]>([]),[suggestions,setSuggestions]=useState(['Wednesday dinner offer','Friday table packages','Aura Room for 6','Don Julio 1942 price']);
+ const activeEvent=occurrence.event;
+ const arrivals=arrivalOptions(activeEvent);
+ const ticketDate=ticketEvent?(dates.find(d=>d.key===nightKey&&d.event.id===ticketEvent.id)||dates.find(d=>d.event.id===ticketEvent.id)):null;
+ const packages=packagesFor(activeEvent,floor);
+ const chosenPackage=packages.find(p=>p.id===packageId)||packages[0]||customPackage;
+ const extrasTotal=bottles.reduce((sum,b)=>sum+b.price*(extraBottles[b.name]||0),0);
+ const publishedSubtotal=chosenPackage.price===null?null:chosenPackage.price+extrasTotal;
+ const gratuity=publishedSubtotal===null?null:publishedSubtotal*.2;
+ const tax=publishedSubtotal===null?null:publishedSubtotal*.1;
+ const estimate=publishedSubtotal===null?null:publishedSubtotal*1.3;
+ const special=events.find(e=>e.id==='trektober');
+ const specialDate=dates.find(d=>d.event.id==='trektober');
+ function goReserve(event?:ClubEvent,kind?:string){
+  setTicketEvent(null);setConcierge(false);setMenu(false);
+  const target=event||(bookingOnly&&hasNight?activeEvent:null);
+  if(target){router.push(`/reserve?night=${encodeURIComponent(target.id)}`);return;}
+  if(bookingOnly){router.push('/#events');return;}
+  document.getElementById('events')?.scrollIntoView({behavior:'smooth',block:'start'});
+ }
+ function choose(table:ClubTable){if(!hasNight)return;setSelected(table);setFloor(table.floor);setStep(1);setPackageId('');setExtraBottles({});setName('');setEmail('');setPhone('');setNotes('');setArrival('');}
+ function openTickets(event:ClubEvent){setTicketEvent(event);}
+ const summary=[`202 Lounge table request`,`${activeEvent.artist} · ${occurrence.label} (${occurrence.date})`,`${floor===2?'Aura Room / second floor':'First floor'} · preferred table ${selected?.number||'host recommendation'}`,`${guests} guests · ${experience}`,`Package: ${chosenPackage.name}${chosenPackage.price===null?' (quote requested)':` · ${money(chosenPackage.price)}`}`,chosenPackage.description,...bottles.filter(b=>extraBottles[b.name]>0).map(b=>`Extra: ${extraBottles[b.name]} × ${b.name} (${money(b.price)} each)`),publishedSubtotal===null?'Custom quote requested':`Published subtotal ${money(publishedSubtotal)} · estimated gratuity ${money(gratuity!)} · estimated tax ${money(tax!)} · estimate ${money(estimate!)}`,`Name: ${name}`,`Mobile: ${phone}`,`Email: ${email}`,`Arrival: ${arrivals.find(a=>a.value===arrival)?.label||'To be confirmed'}`,notes?`Notes: ${notes}`:'','Please confirm date, table, eligible premium bottles, package availability, final fees and payment instructions.'].filter(Boolean).join('\n');
+ async function startCheckout(){
+  if(checkoutBusy)return;setCheckoutBusy(true);setCheckoutError('');
+  try{
+   const response=await fetch('/api/202/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    eventId:activeEvent.id,eventDate:occurrence.date,floor,tableNumber:selected?.number||null,guests,occasion:experience,
+    packageId:chosenPackage.id,extras:Object.fromEntries(bottles.filter(b=>extraBottles[b.name]>0).map(b=>[b.name,extraBottles[b.name]])),
+    name,phone,email,arrival,notes
+   })});
+   const data=await response.json();if(!response.ok||!data.clientSecret)throw new Error(data.error||'Checkout could not be started.');
+   sessionStorage.setItem('202-checkout',JSON.stringify(data));
+   router.push('/reserve/checkout');
+  }catch(error){setCheckoutError(error instanceof Error?error.message:'Checkout could not be started. Please try again.');setCheckoutBusy(false);}
+ }
+ async function send(text?:string){
+  const message=(text||input).trim();if(!message||busy)return;const history=messages;setMessages(m=>[...m,{role:'user',text:message}]);setInput('');setBusy(true);setActions([]);
+  try{const r=await fetch('/api/concierge',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message,history,event:hasNight?activeEvent.artist:undefined})});if(!r.ok)throw new Error();const d=await r.json();setMessages(m=>[...m,{role:'ai',text:d.reply}]);setActions(d.actions||[]);setSuggestions(d.suggestions||[]);}
+  catch{setMessages(m=>[...m,{role:'ai',text:`Please text ${contact.phone} for a confirmed quote. You can still view the flyers, bottle menu and table packages here.`}]);}
+  finally{setBusy(false);}
+ }
+ function runAction(a:Action){const event=events.find(e=>e.artist===a.event);setConcierge(false);if(a.type==='tickets')openTickets(event||activeEvent);else goReserve(event);}
+ const showFlyer=(src:string,title:string)=>setFlyer({src,title});
+ const pricedPackages=packages.filter(p=>p.price!==null);
+ const packageFlyerSrc=activeEvent.id==='tuesday'?'/202/tuesday-birthday.webp':['friday','saturday'].includes(activeEvent.id)?(floor===2?'/202/aura-packages.webp':'/202/weekend-packages.webp'):null;
+ const panelFlyer=packageFlyerSrc?{src:packageFlyerSrc,title:`${activeEvent.artist} table packages`,isPackage:true}:{src:activeEvent.image,title:activeEvent.artist,isPackage:false};
+ function startPackage(id:string){choose({id:`F${floor}-concierge`,number:0,floor,x:0,y:0,width:0,height:0});setPackageId(id);}
+ return <main className={`clubSite ${bookingOnly?'clubBookingPage':''}`}>
+  {!bookingOnly&&<><section className="hero"><div className="heroImage"/><div className="heroShade"/><div className="grain"/>
+   <header><a className="mark clubMark" href="#" aria-label="202 Lounge home"><img src="/202/logo.webp" alt="202 Lounge — The Experience"/></a><nav><a href="#events" onClick={e=>{e.preventDefault();goReserve();}}>Table Reservations</a><a href="#events" onClick={e=>{e.preventDefault();goReserve();}}>Bottle Service</a><a href="#events">Events</a></nav></header>
+   <div className="heroCopy"><h1>DC NIGHTLIFE.<br/><i>STARTS HERE.</i></h1><p className="heroLine">Food, cocktails, hookah and VIP bottle service in the heart of Chinatown.</p>
+    <div className="heroActions"><button className="heroPrimary" onClick={()=>goReserve()}>Reserve a Table →</button><button onClick={()=>document.getElementById('events')?.scrollIntoView({behavior:'smooth'})}>Events & RSVP</button><button onClick={()=>setMenu(true)}>Bottle Menu</button></div>
+
+   </div>
+  </section>
+
+  <section className="events clubEvents" id="events"><div className="sectionHead"><h2>WHAT’S ON <i>AT 202</i></h2></div>
+   <div className="eventGrid">{[...(special&&specialDate?[special]:[]),...events.filter(e=>!e.fixedDate)].map(event=>{
+    return <article className={`event ${event.fixedDate?'eventSpecial':''}`} key={event.id}>
+     <button className="flyerButton" onClick={()=>openTickets(event)} aria-label={`View ${event.artist} event details`}><img loading="lazy" width="720" height="900" src={event.image} alt={`${event.artist} flyer`}/></button>
+     <div className="eventInfo"><div className="eventCaption"><div className="eventNight"><span>{event.fixedDate?'OCT':'EVERY'}</span><strong>{event.fixedDate?'24':event.day}</strong></div><div className="eventTitle"><span className="nightLabel">{event.fixedDate?'SPECIAL EVENT':`EVERY ${event.day}`}</span><h3>{event.fixedDate?'TrickTober':event.artist}</h3></div></div><div className="eventButtons"><button className="tableCta" onClick={()=>goReserve(event,'Bottle Service')}>{event.fixedDate?'Request a Table':'Tables & Packages'}</button></div></div>
+    </article>;
+   })}</div>
+  </section>
+   <section className="venueAbout"><div className="aboutHeadline"><small>INSIDE 202 · CHINATOWN</small><h2>COME FOR<br/>THE VIBE.<br/><i>STAY FOR<br/>THE NIGHT.</i></h2></div><div className="aboutStory"><div className="venueFacts"><div className="venueFact"><strong>02</strong><span><b>FLOORS</b><small>First Floor · Aura Room</small></span></div><div className="venueFact"><strong>02</strong><span><b>FULL BARS</b><small>Two bars at 202</small></span></div><div className="venueFact venueFactHookah"><b>HOOKAH</b><small>At your table</small></div></div><div className="foodMenuFeature"><div className="foodMenuHeading"><small>FROM THE KITCHEN</small><h3>FOOD MENU</h3></div><div className="menuHighlights"><span>District Wings <b>$15</b></span><span>Burger Sliders <b>$20</b></span><span>202 Tacos <b>$12</b></span><span>Parmesan Fries <b>$10</b></span><span>French Fries <b>$8</b></span><span>Sub shrimp <b>$14</b></span></div></div></div></section>
+  </>}
+  {bookingOnly&&<><header className="bookingPageHeader"><a className="clubMark" href="/" aria-label="202 Lounge home"><img src="/202/logo.webp" alt="202 Lounge — The Experience"/></a><a className="backToEvents" href="/#events">← Back to Events</a></header>
+  <section className="bookingExperience" id="reserve"><div className="bookingIntro"><p className="eyebrow">TABLES & BOTTLE SERVICE</p><h2>{hasNight?activeEvent.artist:'Choose your event.'}</h2><p>Pick your floor, tap your table and choose your bottles. Up to 8 guests per reservation.</p></div>
+   {hasNight&&<div className="bookingControls"><div className="selectedEventNight"><span>YOUR NIGHT</span><strong>{activeEvent.artist}</strong></div><div className="floorTabs" role="group" aria-label="Choose floor">{floors.map(f=><button key={f.id} aria-pressed={floor===f.id} onClick={()=>{setFloor(f.id);setPackageId('');setSelected(null);}}>{f.name}</button>)}</div></div>}
+
+   {hasNight?<div className="bookingStage"><div className="mapPanel"><div className="floorHeading"><p className="eyebrow">{floor===2?'THE AURA ROOM':'THE MAIN ROOM'}</p><h3>{floor===2?'Second Floor':'First Floor'}</h3><p>Tap a table to get started.</p></div><div className={`realFloorPlan floorCrop floor${floor}`}><div className="floorPlanCanvas"><img src={floor===1?'/202/floor1.webp':'/202/floor2.webp'} alt={`${floor===1?'First':'Second'} floor plan with numbered tables, bar and DJ`}/>{tables.filter(t=>t.floor===floor).map(t=><button key={t.id} className="tableHotspot" style={{left:`${t.x}%`,top:`${t.y}%`,width:`${t.width}%`,height:`${t.height}%`}} onClick={()=>choose(t)} aria-label={`Choose ${floor===2?'second floor':'first floor'} table ${t.number}`} title={`Table ${t.number}`}/>)}</div></div><div className="tablePicker"><span>Or choose a table number</span><div className="tableNumberList" aria-label="Table numbers">{tables.filter(t=>t.floor===floor).map(t=><button key={t.id} onClick={()=>choose(t)}>Table {t.number}</button>)}</div></div></div>
+    <aside className="inventory bookPanel" aria-label="Table packages">
+     <div className="bookPanelHead"><p className="bookPanelEyebrow">{occurrence.label} · {floor===2?'Aura Room · 2nd Floor':'Main Room · 1st Floor'}</p><h3>{activeEvent.artist}</h3></div>
+     <figure className="bookPanelFlyer"><button className="flyerButton" onClick={()=>showFlyer(panelFlyer.src,panelFlyer.title)} aria-label={`Open full flyer: ${panelFlyer.title}`}><img src={panelFlyer.src} alt={`${panelFlyer.title} flyer`} width="720" height="900"/></button><figcaption><span>{panelFlyer.isPackage?'Package flyer':'Event flyer'}</span><button className="bookPanelTextLink" onClick={()=>showFlyer(panelFlyer.src,panelFlyer.title)}>View full flyer ↗</button></figcaption></figure>
+     {pricedPackages.length>0?<div className="bookPanelTiers"><p className="bookPanelLabel">Select a package</p><ul>{pricedPackages.map(p=><li key={p.id}><button className="bookTier" onClick={()=>startPackage(p.id)}><span className="bookTierName"><b>{p.name}</b><small>{p.guests?`Admission for ${p.guests} guests`:'Guest allowance confirmed by host'}</small></span><span className="bookTierPrice">{money(p.price!)}<i aria-hidden="true">→</i></span></button></li>)}</ul><button className="bookPanelTextLink bookPanelBuild" onClick={()=>startPackage(customPackage.id)}>Or choose individual bottles →</button></div>:<div className="bookPanelTiers"><p className="bookPanelNote">No published table packages for this night. Package availability is confirmed by the concierge.</p><button className="bookTier bookTierSolo" onClick={()=>startPackage(customPackage.id)}><span className="bookTierName"><b>Choose your bottles</b><small>Up to {maxReservationGuests} guests per reservation</small></span><span className="bookTierPrice"><i aria-hidden="true">→</i></span></button></div>}
+     <div className="bookPanelLinks"><button className="bookPanelLink" onClick={()=>setMenu(true)}><span>Bottle Menu</span><i aria-hidden="true">↗</i></button></div>
+     <p className="bookPanelFine">A $250 deposit submits your request. The club confirms table availability and the remaining balance.</p></aside>
+   </div>:<div className="chooseNightPrompt"><span>TABLES & BOTTLES</span><h3>Start with your event.</h3><p>Choose an event to see its tables and bottle options.</p><a className="backToEvents" href="/#events">View Events →</a></div>}
+  </section></>}
+  <footer><a className="mark clubMark" href="#" aria-label="202 Lounge home"><img src="/202/logo.webp" alt="202 Lounge — The Experience"/></a><p>609 H St NW · Washington, DC<br/>Text <a href={`sms:${contact.sms}`}>{contact.phone}</a><br/>Powered by BFP Venue Intelligence.</p><div><a href="/#events">Table Reservations</a><button className="footerConcierge" onClick={()=>setMenu(true)}>Bottle Menu</button><a href="/#events">Events</a><a href="/careers">Careers</a><a href="/admin">Admin</a></div></footer>
+
+  {ticketEvent&&<Modal title={`${ticketEvent.artist} details and RSVP`} onClose={()=>setTicketEvent(null)}><p className="eyebrow">202 LOUNGE / EVENTS & RSVP</p><h2>{ticketEvent.artist}</h2><p>{ticketEvent.fixedDate?`${ticketDate?.label} · `:`Every ${ticketEvent.day} · `}{ticketEvent.time}</p><ul className="eventDetails">{ticketEvent.details.map(d=><li key={d}>{d}</li>)}</ul><p><strong>{ticketEvent.admission}</strong></p><div className="modalActions">{ticketEvent.rsvp?<a className="primary actionLink" href={ticketEvent.rsvp} target="_blank" rel="noopener noreferrer">RSVP for this night ↗</a>:<p className="rsvpPending">Online RSVP coming soon.</p>}<button onClick={()=>goReserve(ticketEvent)}>VIEW TABLE PACKAGES →</button><button onClick={()=>{setTicketEvent(null);showFlyer(ticketEvent.image,ticketEvent.artist);}}>VIEW FULL FLYER</button></div><p className="packageFine">Check the event details for RSVP cutoffs and admission requirements.</p></Modal>}
+
+  {selected&&<Modal title="Build your table request" onClose={()=>setSelected(null)}><div className="bookingProgress"><span className={step>=1?'active':''}>1 · TABLE</span><span className={step>=2?'active':''}>2 · BOTTLES</span><span className={step>=3?'active':''}>3 · GUEST</span><span className={step>=4?'active':''}>4 · REVIEW</span></div><p className="eyebrow">{occurrence.label} · {activeEvent.artist}</p><h2>{floor===2?'Aura Room':'First floor'}<small> {selected.number?`PREFERRED TABLE ${selected.number}`:'CONCIERGE TABLE SELECTION'}</small></h2>
+   {step===1&&<><p>Set your group size, then choose your bottles. Your table is confirmed by the club after your deposit is reviewed.</p><div className="demoForm bookingFields"><label>Guests<select value={guests} onChange={e=>setGuests(Math.min(maxReservationGuests,Math.max(1,Number(e.target.value))))}>{Array.from({length:maxReservationGuests},(_,i)=><option key={i+1} value={i+1}>{i+1}</option>)}</select></label><label>Occasion<select value={experience} onChange={e=>setExperience(e.target.value)}>{['Bottle Service','VIP Table','Birthday','Night Out','Private Event'].map(x=><option key={x}>{x}</option>)}</select></label></div><button className="primary fullWidth" onClick={()=>setStep(2)}>Choose My Bottles →</button></>}
+   {step===2&&<><div className="packageChoices">{packages.filter(p=>p.price!==null||packages.length>1).map(p=><button key={p.id} className={chosenPackage.id===p.id?'active':''} onClick={()=>setPackageId(p.id)}><span><strong>{p.name}</strong><small>{p.description}</small></span><b>{p.price===null?'Build it →':money(p.price)}</b></button>)}</div>{chosenPackage.guests&&guests>chosenPackage.guests&&<p className="notice">This package includes admission for {chosenPackage.guests}. Your party has {guests} guests; the host must confirm extra admissions and seating.</p>}<p className="bookingLead">{chosenPackage.price===null?'Pick your favorites from the bottle menu.':'Want something extra? Add bottles to your package below. Included bottle choices are confirmed with your reservation.'}</p><details className="bottleExtras" open={chosenPackage.price===null}><summary>{chosenPackage.price===null?'Choose your bottles':'Add extra bottles'}</summary>{bottles.map(b=><label className="bottleExtra" key={b.name}><span><strong>{b.name}</strong><small>{b.category} · {money(b.price)} each</small></span><select aria-label={`Extra ${b.name} quantity`} value={extraBottles[b.name]||0} onChange={e=>setExtraBottles({...extraBottles,[b.name]:Number(e.target.value)})}>{[0,1,2,3,4,5,6,7,8,9,10].map(n=><option key={n} value={n}>{n}</option>)}</select></label>)}</details><p className="packageFine">Bottle prices exclude 20% gratuity and 10% tax. The club confirms package inclusions and your remaining balance.</p><div className="bookingCostPreview" aria-live="polite"><div><span>{publishedSubtotal===null?'Selected bottles':'Package + extra bottles'}</span><strong>{publishedSubtotal===null?money(extrasTotal):money(publishedSubtotal)}</strong></div>{estimate!==null&&<div><span>Estimated total with tax & gratuity</span><strong>{money(estimate)}</strong></div>}<p>{publishedSubtotal===null?'Bottle subtotal only. Table minimums, gratuity and tax are confirmed before payment.':`Includes ${money(gratuity!)} estimated gratuity and ${money(tax!)} estimated tax. Final balance confirmed by the club.`}</p></div><div className="bookingActions"><button className="primary" onClick={()=>setStep(3)}>Continue to Guest Details →</button><button onClick={()=>setStep(1)}>BACK</button></div></>}
+   {step===3&&<form onSubmit={e=>{e.preventDefault();setStep(4);}}><p>Enter the reservation holder’s information for your request.</p><div className="guestCheckout"><label>Full name<input required autoComplete="name" value={name} onChange={e=>setName(e.target.value)}/></label><label>Mobile<input required type="tel" autoComplete="tel" value={phone} onChange={e=>setPhone(e.target.value)}/></label><label>Email<input required type="email" autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)}/></label><label>Arrival time<select aria-label="Arrival time" required={arrivals.length>0} disabled={!arrivals.length} value={arrival} onChange={e=>setArrival(e.target.value)}><option value="">{arrivals.length?'Choose arrival time':'Opening time to be confirmed'}</option>{arrivals.map(a=><option key={a.value} value={a.value}>{a.label}</option>)}</select></label><label className="wideField">Bottle preferences / special requests<textarea value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Included bottle preferences, birthday details, accessibility or seating requests"/></label></div><div className="bookingActions"><button className="primary" type="submit">REVIEW REQUEST →</button><button type="button" onClick={()=>setStep(2)}>BACK</button></div></form>}
+   {step===4&&<><div className="finalReview"><small>YOUR TABLE REQUEST</small><h3>{activeEvent.artist}</h3><p>{occurrence.label} · {floor===2?'Aura Room':'First floor'} · {selected.number?`Table ${selected.number} preferred`:'Concierge table selection'}</p><div><span>{guests} guests</span><span>{experience}</span><span>{chosenPackage.name}</span></div><p>{chosenPackage.description}</p><dl className="priceBreakdown"><div><dt>{chosenPackage.price===null?'Table minimum':'Package'}</dt><dd>{chosenPackage.price===null?'Confirmed separately':money(chosenPackage.price)}</dd></div>{bottles.filter(b=>extraBottles[b.name]>0).map(b=><div key={b.name}><dt>{extraBottles[b.name]} × extra {b.name}</dt><dd>{money(b.price*extraBottles[b.name])}</dd></div>)}{publishedSubtotal!==null&&<><div><dt>Subtotal</dt><dd>{money(publishedSubtotal)}</dd></div><div><dt>Estimated gratuity · 20%</dt><dd>{money(gratuity!)}</dd></div><div><dt>Estimated tax · 10% of subtotal</dt><dd>{money(tax!)}</dd></div><div className="total"><dt>Estimated total</dt><dd>{money(estimate!)}</dd></div></>}</dl><p className="packageFine">Estimated charges. The club confirms table availability, package inclusions and the remaining balance after reviewing your deposit.</p><p>{name} · {phone}<br/>{email}<br/>Arrival: {arrivals.find(a=>a.value===arrival)?.label||'To be confirmed'}</p></div><p>Pay the $250 deposit to submit your request. Then text 202-520-9070 with your name and event night so the club can confirm your table and remaining balance.</p>{checkoutError&&<p className="notice" role="alert">{checkoutError}</p>}<p className="packageFine">Pay a $250 reservation deposit today. Any remaining balance is confirmed by 202 Lounge and paid directly to the club.</p><div className="modalActions"><button className="primary" onClick={startCheckout} disabled={checkoutBusy}>{checkoutBusy?'OPENING SECURE CHECKOUT…':'PAY $250 DEPOSIT →'}</button><a className="actionLink" href={`tel:${contact.sms}`}>CALL {contact.phone}</a><button onClick={()=>setStep(3)}>EDIT DETAILS</button></div></>}
+  </Modal>}
+
+  {menu&&<Modal title="202 Lounge bottle menu" onClose={()=>setMenu(false)}><p className="eyebrow">202 LOUNGE / BOTTLE SERVICE</p><h2>The bottle menu.</h2><div className="bottleMenuList">{[...new Set(bottles.map(b=>b.category))].map(category=><section key={category}><h3>{category}</h3>{bottles.filter(b=>b.category===category).map(b=><div key={b.name}><span>{b.name}</span><strong>{money(b.price)}</strong></div>)}</section>)}</div><p>Bottle prices exclude 20% gratuity and 10% tax.</p><div className="modalActions"><button className="primary" onClick={()=>{setMenu(false);goReserve(undefined,'Bottle Service');}}>Choose My Table & Bottles →</button><button onClick={()=>{setMenu(false);showFlyer('/202/bottle-menu.webp','Original bottle menu');}}>VIEW ORIGINAL MENU</button></div></Modal>}
+  {flyer&&<Modal title={flyer.title} onClose={()=>setFlyer(null)}><h2 className="flyerTitle">{flyer.title}</h2>{flyer.src==='/202/floor1.webp'||flyer.src==='/202/floor2.webp'?<div className={`realFloorPlan floorCrop ${flyer.src.includes('floor1')?'floor1':'floor2'}`}><div className="floorPlanCanvas"><img src={flyer.src} alt={flyer.title}/></div></div>:<img className="fullFlyer" src={flyer.src} alt={flyer.title}/>}</Modal>}
+
+ </main>;
+}

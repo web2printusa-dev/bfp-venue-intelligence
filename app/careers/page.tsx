@@ -20,6 +20,7 @@ export default function Careers(){
     <label>WHY 202 LOUNGE?<textarea value={form.why} onChange={e=>set('why',e.target.value)} placeholder="Why are you a strong fit for this role?" required/></label>
     <button className="submit" disabled={status==='SUBMITTING'}>{status==='SUBMITTING'?'SENDING…':'SUBMIT APPLICATION →'}</button>
     {status==='RECEIVED'&&<div className="received"><b>APPLICATION RECEIVED.</b><span>Our hiring team can now review your application and contact you about next steps.</span></div>}
+    {status&&status!=='SUBMITTING'&&status!=='RECEIVED'&&<p role="alert">{status}</p>}
    </form>
   </section>
  </main>
