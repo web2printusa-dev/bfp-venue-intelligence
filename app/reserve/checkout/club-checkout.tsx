@@ -13,7 +13,7 @@ type StripeElement = {mount:(target:string)=>void;destroy:()=>void};
 type Checkout = {
   createPaymentElement:()=>StripeElement;
   on:(event:'change',handler:(session:Session)=>void)=>void;
-  loadActions?:()=>Promise<{type:string;actions?:Actions;error?:{message?:string}}>;
+  loadActions?:()=>Promise<{type:string;actions?:Actions;error?:{message?:string;code?:string}}>;
   confirm?:()=>Promise<ConfirmResult>;
 };
 type StripeClient = {initCheckoutElementsSdk?:(options:unknown)=>Checkout;initCheckout?:(options:unknown)=>Checkout};
