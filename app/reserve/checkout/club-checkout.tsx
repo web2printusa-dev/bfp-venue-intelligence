@@ -96,7 +96,7 @@ export default function ClubCheckout({publishableKey}:{publishableKey:string}) {
   const r=booking?.reservation;
   const night=r?new Intl.DateTimeFormat('en-US',{weekday:'long',month:'long',day:'numeric',timeZone:'UTC'}).format(new Date(r.date+'T12:00:00Z')):'';
   return <main className={styles.page}>
-    <Script src="https://js.stripe.com/v3/" strategy="afterInteractive" onReady={()=>setScriptReady(true)} onError={()=>{setError('Secure payment fields could not load. Check your connection and reload.');setLoading(false);}}/>
+    <Script src="https://js.stripe.com/dahlia/stripe.js" strategy="afterInteractive" onReady={()=>setScriptReady(true)} onError={()=>{setError('Secure payment fields could not load. Check your connection and reload.');setLoading(false);}}/>
     <header className={styles.header}><Link href="/" aria-label="202 Lounge home"><img src="/202/logo.webp" alt="202 Lounge — The Experience"/></Link><Link href="/#events" className={styles.back}>← Back to events</Link></header>
     <div className={styles.layout}>
       <section className={styles.summary} aria-label="Reservation summary">
