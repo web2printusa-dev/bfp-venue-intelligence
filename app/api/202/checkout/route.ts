@@ -3,7 +3,7 @@ import { arrivalOptions, bottles, packagesFor, tables, upcomingOccurrences, maxR
 
 export const runtime = 'nodejs';
 
-const DEPOSIT_CENTS = 25_000;
+const DEPOSIT_CENTS = 10_000;
 const clean = (value: unknown, max = 300) => typeof value === 'string' ? value.trim().slice(0, max) : '';
 
 export async function POST(request: Request) {
@@ -11,7 +11,7 @@ export async function POST(request: Request) {
   // Manual verification mode: reservation details remain in Stripe metadata.
   // Automatic CRM fulfillment starts only after a signed webhook is configured.
   if (!secret || !process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
-    return NextResponse.json({ error: 'Online deposit checkout is being prepared. Please call 202 Lounge at 202-520-9070 to reserve.' }, { status: 503 });
+    return NextResponse.json({ error: 'Online deposit checkout is being prepared. Please try again shortly.' }, { status: 503 });
   }
 
   try {
@@ -84,7 +84,7 @@ export async function POST(request: Request) {
     form.set('line_items[0][price_data][currency]', 'usd');
     form.set('line_items[0][price_data][unit_amount]', String(DEPOSIT_CENTS));
     form.set('line_items[0][price_data][product_data][name]', '202 Lounge Reservation Deposit');
-    form.set('line_items[0][price_data][product_data][description]', `$250 deposit for ${occurrence.event.artist} on ${occurrence.date}. Any remaining balance is confirmed by the club and paid directly to 202 Lounge.`);
+    form.set('line_items[0][price_data][product_data][description]', `$100 deposit for ${occurrence.event.artist} on ${occurrence.date}. Any remaining balance is confirmed by the club and paid directly to 202 Lounge.`);
     const siteOrigin = new URL(request.url).origin;
     form.set('return_url', `${siteOrigin}/reserve/confirmation?session_id={CHECKOUT_SESSION_ID}`);
     Object.entries(metadata).forEach(([key, value]) => {
@@ -101,7 +101,7 @@ export async function POST(request: Request) {
     const session = await stripeResponse.json();
     if (!stripeResponse.ok || !session.client_secret) {
       console.error('Stripe Checkout session creation failed:', {type:session.error?.type,code:session.error?.code,param:session.error?.param,message:session.error?.message,status:stripeResponse.status});
-      return NextResponse.json({ error: 'Secure checkout could not be started. Please try again or call 202 Lounge.' }, { status: 502 });
+      return NextResponse.json({ error: 'Secure checkout could not be started. Please try again.' }, { status: 502 });
     }
     console.info('Stripe checkout session created', {
       sessionMode: session.livemode ? 'live' : 'test',
