@@ -1,6 +1,6 @@
 import 'server-only';
 
-export const CLUB_LOCATION_ID = 'uYTLVGkSNA2Blh4madQc';
+export const CLUB_LOCATION_ID = 'oIYe14RPMLuOrnMceJAC';
 const WORKFLOWS = {
   reservation: 'e44fbccc-96c3-4ec2-80f3-f66534bd7245',
   application: '2b404760-0331-443c-9069-b77e37f699e7',
