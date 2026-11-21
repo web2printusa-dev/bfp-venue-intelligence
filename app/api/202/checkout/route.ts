@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { arrivalOptions, bottles, packagesFor, tables, upcomingOccurrences, maxReservationGuests } from '../../../../lib/202-lounge-public';
 
@@ -75,17 +76,36 @@ export async function POST(request: Request) {
       special_requests: clean(body.notes, 300),
     };
 
+    const reference = '202-' + createHash('sha256').update(JSON.stringify([eventId,eventDate,email,floor,tableNumber])).digest('hex');
+    const stripeHeaders = { Authorization: `Bearer ${secret}`, 'Stripe-Version': '2026-03-25.dahlia' };
+    // Look for prior checkouts even after Stripe's idempotency cache expires.
+    const lookup = new URLSearchParams({limit:'100','created[gte]':String(Math.floor(Date.parse(eventDate+'T00:00:00Z')/1000)-36*86400)});
+    let foundOpen = false;
+    for (let page=0;;page++) {
+      const response = await fetch('https://api.stripe.com/v1/checkout/sessions?'+lookup,{headers:stripeHeaders,cache:'no-store',signal:AbortSignal.timeout(8000)});
+      if(!response.ok || page>=10) return NextResponse.json({error:'We could not check for a previous deposit. Please contact 202 Lounge before paying.'},{status:503});
+      const prior = await response.json();
+      for(const previous of prior.data) {
+        const m = previous.metadata;
+        if(previous.client_reference_id!==reference && !(m?.booking_type==='202-table-deposit' && m.event_id===eventId && m.event_date===eventDate && m.guest_email?.trim().toLowerCase()===email && m.floor===metadata.floor && m.table===metadata.table)) continue;
+        if(previous.payment_status==='paid'||previous.status==='complete') return NextResponse.json({error:'A deposit already exists or is processing for this booking. Contact 202 Lounge if you need to make a change.'},{status:409});
+        if(previous.status==='open')foundOpen=true;
+      }
+      if(!prior.has_more)break;
+      lookup.set('starting_after',prior.data.at(-1).id);
+    }
+    if(foundOpen) return NextResponse.json({error:'Checkout is already open for this booking. Return to the original checkout or contact 202 Lounge before paying.'},{status:409});
     const form = new URLSearchParams();
     form.set('mode', 'payment');
     form.set('ui_mode', 'elements');
     form.set('customer_email', email);
-    form.set('client_reference_id', `202-${eventDate}-${Date.now()}`);
+    form.set('client_reference_id', reference);
     form.set('line_items[0][quantity]', '1');
     form.set('line_items[0][price_data][currency]', 'usd');
     form.set('line_items[0][price_data][unit_amount]', String(DEPOSIT_CENTS));
     form.set('line_items[0][price_data][product_data][name]', '202 Lounge Reservation Deposit');
     form.set('line_items[0][price_data][product_data][description]', `$100 deposit for ${occurrence.event.artist} on ${occurrence.date}. Any remaining balance is confirmed by the club and paid directly to 202 Lounge.`);
-    const siteOrigin = new URL(request.url).origin;
+    const siteOrigin = 'https://www.202lounge.com';
     form.set('return_url', `${siteOrigin}/reserve/confirmation?session_id={CHECKOUT_SESSION_ID}`);
     Object.entries(metadata).forEach(([key, value]) => {
       form.set(`metadata[${key}]`, value);
@@ -94,12 +114,13 @@ export async function POST(request: Request) {
 
     const stripeResponse = await fetch('https://api.stripe.com/v1/checkout/sessions', {
       method: 'POST',
-      headers: { Authorization: `Bearer ${secret}`, 'Content-Type': 'application/x-www-form-urlencoded', 'Stripe-Version': '2026-03-25.dahlia' },
+      headers: { ...stripeHeaders, 'Content-Type': 'application/x-www-form-urlencoded', 'Idempotency-Key': reference },
       body: form,
       cache: 'no-store',
     });
     const session = await stripeResponse.json();
-    if (!stripeResponse.ok || !session.client_secret) {
+    if (stripeResponse.status===409 || session.error?.type==='idempotency_error') return NextResponse.json({error:'This booking already has a checkout attempt. Contact 202 Lounge before paying again.'},{status:409});
+    if (!stripeResponse.ok || !session.client_secret || session.status!=='open' || session.payment_status==='paid' || session.expires_at<=Date.now()/1000) {
       console.error('Stripe Checkout session creation failed:', {type:session.error?.type,code:session.error?.code,param:session.error?.param,message:session.error?.message,status:stripeResponse.status});
       return NextResponse.json({ error: 'Secure checkout could not be started. Please try again.' }, { status: 502 });
     }
