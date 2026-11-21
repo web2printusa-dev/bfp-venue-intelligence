@@ -1,8 +1,11 @@
 import {redirect} from 'next/navigation';
 import {auth,adminConfigured,signOut} from '../../lib/club-auth';
 
+import {listClubApplications} from '../../lib/202-prosper';
+import {upcomingOccurrences} from '../../lib/202-lounge-public';
+
 export const dynamic='force-dynamic';
-export const metadata={title:'Reservations | 202 Lounge',robots:{index:false,follow:false}};
+export const metadata={title:'Operations | 202 Lounge',robots:{index:false,follow:false}};
 
 type Booking={id:string;created:number;livemode:boolean;status:string;payment_status:string;amount_total:number|null;currency:string|null;metadata:Record<string,string>|null};
 type SessionPage={data:Booking[];has_more:boolean};
@@ -38,19 +41,51 @@ function extras(value:string){
  return value;
 }
 
-export default async function Dashboard({searchParams}:{searchParams:Promise<{after?:string}>}){
+export default async function Dashboard({searchParams}:{searchParams:Promise<{after?:string; view?:string; page?:string}>}){
  if(!adminConfigured())redirect('/admin');
  const session=await auth();
  if(!session?.user)redirect('/admin');
- const {after}=await searchParams;
+ const {after,view,page}=await searchParams;
+ const active=view==='applications'||view==='events'?view:'reservations';
+ const applicationPage=typeof page==='string'&&/^[1-9][0-9]{0,2}$/.test(page)?Math.min(500,Number(page)):1;
+ let applications:Awaited<ReturnType<typeof listClubApplications>>|null=null;
+ if(active==='applications')try {applications=await listClubApplications(applicationPage);} catch {}
  const cursor=typeof after==='string'&&/^cs_[a-zA-Z0-9_]{1,200}$/.test(after)?after:undefined;
  let records:Awaited<ReturnType<typeof reservations>>|null=null;
- try {records=await reservations(cursor);} catch {}
+ if(active==='reservations')try {records=await reservations(cursor);} catch {}
  return <main style={{maxWidth:1000,margin:'auto',padding:'clamp(20px,5vw,56px)',color:'#f8f7ed',background:'#121310',minHeight:'100vh'}}>
   <header style={{display:'flex',gap:16,alignItems:'center',justifyContent:'space-between',flexWrap:'wrap'}}>
-   <div><p style={{color:'#c4f432',letterSpacing:3}}>202 LOUNGE · ADMIN</p><h1>Table reservations</h1></div>
+   <div><p style={{color:'#c4f432',letterSpacing:3}}>202 LOUNGE · ADMIN</p><h1>Operations hub</h1></div>
    <form action={async()=>{'use server';await signOut({redirectTo:'/admin'});}}><button style={{background:'#c4f432',color:'#111',padding:'12px 20px',borderRadius:8,border:0,fontWeight:700}}>Sign out</button></form>
   </header>
+  <nav aria-label="Operations" style={{display:'flex',gap:12,flexWrap:'wrap',margin:'20px 0 28px'}}>
+   {([['reservations','Reservations'],['applications','Staff applications'],['events','Upcoming events']] as const).map(([id,label])=>
+    <a key={id} href={id==='reservations'?'/dashboard':'/dashboard?view='+id} aria-current={active===id?'page':undefined}
+      style={{background:active===id?'#c4f432':'#20221a',color:active===id?'#111':'#f8f7ed',padding:'10px 15px',borderRadius:8,fontWeight:700}}>{label}</a>)}
+   <a href="/" style={{color:'#c4f432',padding:'10px 0'}}>Public website ↗</a>
+  </nav>
+  {active==='applications'&&<section aria-label="Staff applications">
+   <h2>Staff applications</h2>
+   {!applications||applications.partial?<p role="alert">{applications?'Some application records could not be loaded.':'Could not load applications from Prosper.'} <a href={'/dashboard?view=applications&page='+applicationPage}>Retry</a> · <a href="https://app.bornforprosperity.com/">Open Prosper</a></p>:null}
+   {applications&&!applications.partial&&!applications.rows.length&&<p>No staff applications in this group of contacts.</p>}
+   {applications?.rows.map(row=>{
+    const lines=row.body.trim().split(/\r?\n/);
+    const headline=lines.find(line=>line.startsWith('Name: '))?.slice(6)||'Staff application';
+    const role=lines.find(line=>line.startsWith('Role: '))?.slice(6);
+    return <details key={row.id} style={{border:'1px solid #3b402e',borderRadius:12,padding:18,marginBottom:12}}>
+     <summary style={{cursor:'pointer',fontWeight:700}}>{headline}{role?' · '+role:''}</summary>
+     <div style={{whiteSpace:'pre-wrap',overflowWrap:'anywhere',marginTop:14}}>{lines.slice(2).join('\n')}</div>
+    </details>;
+   })}
+   {applicationPage>1&&<p><a href={'/dashboard?view=applications&page='+(applicationPage-1)}>← Previous group</a></p>}
+   {applications?.next&&<p><a href={'/dashboard?view=applications&page='+(applicationPage+1)}>Next group →</a></p>}
+  </section>}
+  {active==='events'&&<section aria-label="Upcoming events">
+   <h2>Upcoming events</h2>
+   <p>Schedule shown on the public site.</p>
+   <ul style={{display:'grid',gap:10,paddingLeft:20}}>{upcomingOccurrences().map(({event,date,label})=><li key={event.id+'-'+date}><strong>{event.artist}</strong> · {label} · {event.time}</li>)}</ul>
+  </section>}
+  {active==='reservations'&&<><h2>Table reservations</h2>
   <p>Submitted bookings appear once checkout opens. A paid deposit does not confirm table availability.</p>
   <p><a href="/dashboard" style={{color:'#c4f432'}}>Refresh / newest bookings</a></p>
   {!records?<p role="alert">Reservations could not be loaded from Stripe. Refresh to retry.</p>:
@@ -74,5 +109,6 @@ export default async function Dashboard({searchParams}:{searchParams:Promise<{af
    })}
   </section>
   {records?.next&&<p><a style={{color:'#c4f432'}} href={'/dashboard?after='+encodeURIComponent(records.next)}>Older checkout records →</a></p>}
+  </>}
  </main>;
 }
