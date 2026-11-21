@@ -108,9 +108,11 @@ export default async function Dashboard({searchParams}:{searchParams:Promise<{af
    {applications?.next&&<p><a href={'/dashboard?view=applications&page='+(applicationPage+1)}>Next group →</a></p>}
   </section>}
   {active==='events'&&<section aria-label="Upcoming events">
-   <h2>Upcoming events</h2>
-   <p>Schedule shown on the public site.</p>
-   <ul style={{display:'grid',gap:10,paddingLeft:20}}>{upcoming.map(({event,date,label})=><li key={event.id+'-'+date}><strong>{event.artist}</strong> · {label} · {event.time} · <a href={'/dashboard?view=reservations&date='+date}>View bookings →</a></li>)}</ul>
+   <h2>Next at 202 Lounge</h2>
+   <p>Pick a night to see its table bookings.</p>
+   <div className="clubEventList">{upcoming.slice(0,5).map(item=><EventRow key={item.key} item={item}/>)}</div>
+   {!upcoming.length&&<p>No upcoming events are listed.</p>}
+   {upcoming.length>5&&<details className="clubMoreEvents"><summary>Show later dates ({upcoming.length-5})</summary><div className="clubEventList">{upcoming.slice(5).map(item=><EventRow key={item.key} item={item}/>)}</div></details>}
   </section>}
   {(active==='reservations'||active==='tonight')&&<><h2>{active==='tonight'?'Upcoming arrivals':'Table bookings'}</h2>
   {active==='reservations'&&<form className="clubFilters" action="/dashboard">
@@ -156,6 +158,13 @@ function arrivalOrder(row:Booking){
  return (hours<6?hours+24:hours)*60+Number(match[2]);
 }
 
+function EventRow({item}:{item:ReturnType<typeof upcomingOccurrences>[number]}){
+ return <a className="clubEventRow" href={'/dashboard?view=reservations&date='+item.date}>
+  <span><small>{item.label}</small><strong>{item.event.artist}</strong><span>{item.event.time}</span></span>
+  <span className="clubEventAction">Bookings →</span>
+ </a>;
+}
+
 const adminStyles=`
 .clubAdmin{--line:#2d302a;--surface:#191b18;--muted:#a8aea2;--lime:#c4f432;display:grid;grid-template-columns:236px minmax(0,1fr);min-height:100dvh;background:#101210;color:#f5f6f2;font:15px/1.5 system-ui,sans-serif}
 .clubAdmin *{box-sizing:border-box}.clubAdmin a{color:var(--lime);text-decoration:none}.clubAdmin a:hover{text-decoration:underline}
@@ -175,7 +184,8 @@ const adminStyles=`
 .clubMetrics strong,.clubMetrics span{display:block}.clubMetrics strong{font-size:32px;margin:4px 0}.clubMetrics span{color:var(--muted);font-size:12px}
 .clubRecord{border-top:1px solid var(--line);padding:12px 0;overflow-wrap:anywhere}.clubRecord summary{cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px}.clubRecord summary strong,.clubRecord summary small{display:block}.clubRecord summary strong:before{content:'›';color:var(--lime);margin-right:7px}.clubRecord[open] summary strong:before{content:'⌄'}
 .clubBadge{border-radius:100px;padding:4px 9px;background:#332d24;color:#efcc84;font-size:12px;font-weight:700}.clubBadge.paid{color:#d9f99f;background:#293721}
- .clubNext>small{color:var(--lime);font-weight:700;letter-spacing:.08em}.clubNext h2{margin-top:8px}
+ .clubEventList{display:grid;gap:8px}.clubEventRow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 12px;border:1px solid var(--line);border-radius:9px;background:#141613}.clubEventRow>span:first-child{display:grid;gap:2px;color:#f5f6f2}.clubEventRow small,.clubEventRow>span:first-child>span{color:var(--muted);font-size:12px}.clubEventAction{flex-shrink:0;font-size:13px;font-weight:700}.clubMoreEvents{margin-top:16px}.clubMoreEvents summary{cursor:pointer;color:var(--lime);padding:10px 0;font-weight:700}
+.clubNext>small{color:var(--lime);font-weight:700;letter-spacing:.08em}.clubNext h2{margin-top:8px}
 .clubFilters{display:flex;align-items:end;flex-wrap:wrap;gap:10px;margin:14px 0}.clubFilters label{display:grid;gap:4px;font-size:12px;color:var(--muted)}.clubFilters input,.clubFilters select,.clubFilters button{font:inherit;font-size:16px;min-height:44px;padding:8px 10px;color:#fff;background:#101210;border:1px solid var(--line);border-radius:8px}.clubFilters button{color:#111;background:var(--lime);font-weight:700;cursor:pointer}
 @media(max-width:720px){.clubAdmin{grid-template-columns:1fr;display:block}.clubSidebar{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line);padding:10px 12px;display:flex;flex-direction:row;justify-content:space-between;align-items:center}.clubSidebar nav{position:fixed;bottom:0;left:0;right:0;z-index:50;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px;padding:5px 4px calc(5px + env(safe-area-inset-bottom));background:#151714;border-top:1px solid var(--line)}.clubSidebar nav>small{display:none}.clubSidebar nav a{display:grid;justify-items:center;gap:3px;font-size:12px;padding:7px 2px;min-height:47px}.clubBrand img{width:32px;height:32px}.clubBrand small,.clubSidebarFoot>a{display:none}.clubSidebarFoot{padding:0}.clubTopbar{display:none}.clubContent{padding-bottom:calc(90px + env(safe-area-inset-bottom))}.clubFilters label{flex:1 1 135px;min-width:0}.clubFilters input,.clubFilters select{width:100%;min-width:0}.clubFilters button{width:100%}.clubRecord summary{align-items:start}.clubBadge{max-width:43%;text-align:center}}
 `;
