@@ -1,4 +1,5 @@
 import 'server-only';
+import {applicationRef,hiringStatuses,type HiringStatus} from './hiring';
 
 export const CLUB_LOCATION_ID = 'oIYe14RPMLuOrnMceJAC';
 const WORKFLOWS = {
@@ -56,14 +57,14 @@ export async function saveClubSubmission(input: Submission) {
   const marker = '[202 submission: ' + input.reference + ']';
   const existing = await crm('/contacts/' + encoded + '/notes', 'GET', undefined, 'v3');
   const notes: {body?: string; bodyText?: string}[] = existing.notes || [];
-  const recorded = notes.some(note => (note.bodyText || note.body)?.includes(marker));
+  const recorded = notes.some(note => (note.bodyText || note.body)?.trim().startsWith(marker));
   if (!recorded) {
     await crm('/contacts/' + encoded + '/notes', 'POST', {
       body: marker + '\n' + input.details,
     }, 'v3');
   }
   const completeMarker = '[202 workflow queued: ' + input.reference + ']';
-  if (!notes.some(note => (note.bodyText || note.body)?.includes(completeMarker))) {
+  if (!notes.some(note => (note.bodyText || note.body)?.trim().startsWith(completeMarker))) {
     // Enroll directly for every new submission, including returning guests whose tag already exists.
     await crm('/contacts/' + encoded + '/workflow/' + WORKFLOWS[input.kind], 'POST', {}, 'v3');
     await crm('/contacts/' + encoded + '/notes', 'POST', {body: completeMarker}, 'v3');
@@ -77,13 +78,41 @@ export async function listClubApplications(page: number) {
   if (!Array.isArray(result.contacts)) throw new Error('Unexpected Prosper response');
   const notes = await Promise.allSettled(result.contacts.map(async (contact: {id: string; locationId?: string}) => {
     if (!contact.id || (contact.locationId && contact.locationId !== CLUB_LOCATION_ID)) return [];
-    const data: {notes: {id: string; body?: string; bodyText?: string}[]} = await crm('/contacts/' + encodeURIComponent(contact.id) + '/notes', 'GET', undefined, 'v3');
-    if (!Array.isArray(data.notes)) throw new Error('Unexpected Prosper notes response');
-    return data.notes.flatMap((note: {id: string; body?: string; bodyText?: string}) => {
-      const body = note.bodyText || note.body || '';
-      return /^\[202 submission: application-[a-f0-9]+\]/.test(body.trim()) ? [{id: contact.id + '-' + note.id, body}] : [];
+    const notes = await getContactNotes(contact.id);
+    return notes.flatMap(note => {
+      const body = (note.bodyText || note.body || '').trim();
+      const reference = /^\[202 submission: (application-[a-f0-9]{24})\]/.exec(body)?.[1];
+      if (!reference) return [];
+      const history = notes.flatMap(entry=>{
+        const raw=(entry.bodyText || entry.body || '').trim();
+        const prefix='[202 hiring update: '+reference+'] ';
+        if(!raw.startsWith(prefix))return [];
+        const [when,status]=raw.slice(prefix.length).split(/\r?\n/,1)[0].split(' | ');
+        if(!hiringStatuses.includes(status as HiringStatus)||!Number.isFinite(Date.parse(when)))return [];
+        return [{id:entry.id,when,status:status as HiringStatus,note:raw.split(/\r?\n/).slice(1).join('\n')}];
+      }).sort((a,b)=>b.when.localeCompare(a.when)||b.id.localeCompare(a.id));
+      return [{id: contact.id + '-' + note.id, contactId:contact.id, reference, body, history, status:history[0]?.status??'New'}];
     });
   }));
   return {rows: notes.flatMap(note => note.status === 'fulfilled' ? note.value : []),
     partial: notes.some(note => note.status === 'rejected'), next: page < 500 && result.contacts.length === pageLimit};
+}
+
+
+type ContactNote={id:string;body?:string;bodyText?:string};
+async function getContactNotes(contactId:string):Promise<ContactNote[]> {
+  const data=await crm('/contacts/'+encodeURIComponent(contactId)+'/notes','GET',undefined,'v3');
+  if(!Array.isArray(data.notes))throw new Error('Unexpected Prosper notes response');
+  return data.notes;
+}
+
+export async function updateClubApplication(contactId:string,reference:string,status:HiringStatus,note:string){
+  if(!/^[A-Za-z0-9_-]{1,80}$/.test(contactId)||!applicationRef.test(reference)||!hiringStatuses.includes(status))throw new Error('Invalid application update');
+  const contact=await crm('/contacts/'+encodeURIComponent(contactId),'GET',undefined,'v3');
+  if(contact.contact?.locationId!==CLUB_LOCATION_ID)throw new Error('Application not found');
+  const notes=await getContactNotes(contactId);
+  if(!notes.some(entry=>(entry.bodyText||entry.body||'').trim().startsWith('[202 submission: '+reference+']')))throw new Error('Application not found');
+  await crm('/contacts/'+encodeURIComponent(contactId)+'/notes','POST',{
+    body:'[202 hiring update: '+reference+'] '+new Date().toISOString()+' | '+status+(note?'\n'+note:''),
+  },'v3');
 }

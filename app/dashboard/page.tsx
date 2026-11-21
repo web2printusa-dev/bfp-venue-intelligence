@@ -1,3 +1,5 @@
+import HiringUpdate from './hiring-update';
+import {roleQuestions,hiringStatuses} from '../../lib/hiring';
 import DashboardRefresh from './dashboard-refresh';
 import {redirect} from 'next/navigation';
 import {auth,adminConfigured,signOut} from '../../lib/club-auth';
@@ -51,11 +53,11 @@ function extras(value:string){
  return value;
 }
 
-export default async function Dashboard({searchParams}:{searchParams:Promise<{after?:string; view?:string; page?:string; q?:string; date?:string; status?:string}>}){
+export default async function Dashboard({searchParams}:{searchParams:Promise<{after?:string; view?:string; page?:string; q?:string; date?:string; status?:string; role?:string; hiringStatus?:string}>}){
  if(!adminConfigured())redirect('/admin');
  const session=await auth();
  if(!session?.user)redirect('/admin');
- const {after,view,page,q,date,status:filter}=await searchParams;
+ const {after,view,page,q,date,status:filter,role:roleFilter,hiringStatus}=await searchParams;
  const active=view==='applications'||view==='events'||view==='reservations'?view:'tonight';
  const navigation=[['tonight','Tonight'],['reservations','Bookings'],['applications','Hiring'],['events','Events']] as const;
  const upcoming=upcomingOccurrences();
@@ -65,6 +67,8 @@ export default async function Dashboard({searchParams}:{searchParams:Promise<{af
  const cursor=typeof after==='string'&&/^cs_[a-zA-Z0-9_]{1,200}$/.test(after)?after:undefined;
  let records:Awaited<ReturnType<typeof reservations>>|null=null;
  if(active==='reservations'||active==='tonight')try {records=await reservations(cursor);} catch {}
+ const applicationRows=(applications?.rows??[]).filter(row=>(!roleFilter||row.body.split(/\r?\n/).includes('Role: '+roleFilter))&&(!hiringStatus||row.status===hiringStatus));
+ const hiringUrl=(target:number)=>'/dashboard?'+new URLSearchParams({view:'applications',page:String(target),role:roleFilter??'',hiringStatus:hiringStatus??''});
  const event=upcoming[0];
  const query=typeof q==='string'?q.trim().slice(0,100):'';
  const selectedDate=typeof date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(date)?date:'';
@@ -118,19 +122,27 @@ export default async function Dashboard({searchParams}:{searchParams:Promise<{af
    <div className="clubPanel clubRecords">
   {active==='applications'&&<section aria-label="Staff applications">
    <h2>Staff applications</h2>
+   <form className="clubFilters" action="/dashboard"><input type="hidden" name="view" value="applications"/>
+    <label>Role<select name="role" defaultValue={roleFilter??''}><option value="">All roles</option>{Object.keys(roleQuestions).map(role=><option key={role}>{role}</option>)}</select></label>
+    <label>Status<select name="hiringStatus" defaultValue={hiringStatus??''}><option value="">All statuses</option>{hiringStatuses.map(status=><option key={status}>{status}</option>)}</select></label>
+    <button>Filter applications</button>
+   </form>
    {!applications||applications.partial?<p role="alert">{applications?'Some application records could not be loaded.':'Could not load applications from Prosper.'} <a href={'/dashboard?view=applications&page='+applicationPage}>Retry</a> · <a href="https://app.bornforprosperity.com/">Open Prosper</a></p>:null}
-   {applications&&!applications.partial&&!applications.rows.length&&<p>No staff applications in this group of contacts.</p>}
-   {applications?.rows.map(row=>{
+   {applications&&!applications.partial&&!applicationRows.length&&<p>No matching applications in this group of contacts.</p>}
+   {applicationRows.map(row=>{
     const lines=row.body.trim().split(/\r?\n/);
     const headline=lines.find(line=>line.startsWith('Name: '))?.slice(6)||'Staff application';
     const role=lines.find(line=>line.startsWith('Role: '))?.slice(6);
     return <details key={row.id} style={{border:'1px solid #3b402e',borderRadius:12,padding:18,marginBottom:12}}>
-     <summary style={{cursor:'pointer',fontWeight:700}}>{headline}{role?' · '+role:''}</summary>
+     <summary style={{cursor:'pointer',fontWeight:700}}>{headline}{role?' · '+role:''} · {row.status}</summary>
      <div style={{whiteSpace:'pre-wrap',overflowWrap:'anywhere',marginTop:14}}>{lines.slice(2).join('\n')}</div>
+     <HiringUpdate key={row.status} contactId={row.contactId} reference={row.reference} status={row.status}/>
+     <p><a href={'https://app.bornforprosperity.com/v2/location/oIYe14RPMLuOrnMceJAC/contacts/detail/'+encodeURIComponent(row.contactId)}>Open applicant in Prosper →</a></p>
+     {row.history.map(entry=><p key={entry.id} style={{whiteSpace:'pre-wrap'}}>{time.format(new Date(entry.when))} ET · {entry.status}{entry.note?' — '+entry.note:''}</p>)}
     </details>;
    })}
-   {applicationPage>1&&<p><a href={'/dashboard?view=applications&page='+(applicationPage-1)}>← Previous group</a></p>}
-   {applications?.next&&<p><a href={'/dashboard?view=applications&page='+(applicationPage+1)}>Next group →</a></p>}
+   {applicationPage>1&&<p><a href={hiringUrl(applicationPage-1)}>← Previous group</a></p>}
+   {applications?.next&&<p><a href={hiringUrl(applicationPage+1)}>Next group →</a></p>}
   </section>}
   {active==='events'&&<section aria-label="Upcoming events">
    <h2>Next at 202 Lounge</h2>
