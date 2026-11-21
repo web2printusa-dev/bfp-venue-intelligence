@@ -8,7 +8,7 @@ function verifyStripeSignature(payload: string, signatureHeader: string, secret:
   const parts = signatureHeader.split(',').map(part => part.split('='));
   const timestamp = parts.find(([key]) => key === 't')?.[1];
   const signatures = parts.filter(([key]) => key === 'v1').map(([, value]) => value);
-  if (!timestamp || !signatures.length || Math.abs(Date.now() / 1000 - Number(timestamp)) > 300) return false;
+  if (!timestamp || !/^\d+$/.test(timestamp) || !signatures.length || Math.abs(Date.now() / 1000 - Number(timestamp)) > 300) return false;
   const expected = createHmac('sha256', secret).update(`${timestamp}.${payload}`).digest('hex');
   return signatures.some(value => {
     try {
@@ -61,11 +61,13 @@ export async function POST(request: Request) {
   try {
     const session = await readCurrentSession(incoming.id);
     if (session.payment_status !== 'paid') return NextResponse.json({ received: true, pending: true });
-    if (session.metadata?.booking_type !== '202-table-deposit' || session.amount_total !== 10000 || session.currency !== 'usd') {
+    if (!session.livemode || session.metadata?.booking_type !== '202-table-deposit' || session.amount_total !== 10000 || session.currency !== 'usd') {
       return NextResponse.json({ received: true, unrelated: true });
     }
     if (!session.metadata?.prosper_synced) {
       const m = session.metadata;
+      const email = m.guest_email || session.customer_details?.email || session.customer_email;
+      if (!email) throw new Error('Paid reservation has no guest email');
       const details = [
         '202 LOUNGE — $100 DEPOSIT PAID',
         'Reservation reference: ' + session.id,
@@ -81,7 +83,8 @@ export async function POST(request: Request) {
         'Confirm table availability and any balance directly with the guest.',
       ].join('\n');
       await saveClubSubmission({ kind: 'reservation', reference: session.id,
-        name: m.guest_name, email: m.guest_email, phone: m.guest_phone, details });
+        name: m.guest_name || session.customer_details?.name || 'Guest',
+        email, phone: m.guest_phone || '', details });
       await setDeliveryFlag(session.id, 'prosper_synced');
     }
     return NextResponse.json({ received: true });

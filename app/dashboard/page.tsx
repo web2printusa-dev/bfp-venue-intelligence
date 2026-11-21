@@ -8,6 +8,15 @@ export const dynamic='force-dynamic';
 export const metadata={title:'Operations | 202 Lounge',robots:{index:false,follow:false}};
 
 type Booking={id:string;created:number;livemode:boolean;status:string;payment_status:string;amount_total:number|null;currency:string|null;metadata:Record<string,string>|null};
+// Group only fully identified paid bookings; keep every checkout visible in history.
+function bookingKey(row:Booking) {
+ const m=row.metadata;
+ if (!m || row.payment_status!=='paid') return null;
+ const parts=[m.guest_email,m.event_id,m.event_date,m.floor,m.table,m.arrival_time,m.guest_count]
+  .map(value=>value?.trim().toLowerCase());
+ if (!parts.every(Boolean) || /^(any|none|n\/?a|any available.*|no preference)$/.test(parts[4]!)) return null;
+ return JSON.stringify(parts);
+}
 type SessionPage={data:Booking[];has_more:boolean};
 
 async function reservations(cursor?:string) {
@@ -58,17 +67,31 @@ export default async function Dashboard({searchParams}:{searchParams:Promise<{af
  const event=upcoming[0];
  const query=typeof q==='string'?q.trim().slice(0,100):'';
  const selectedDate=typeof date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(date)?date:'';
- const statusFilter=typeof filter==='string'&&['paid','unpaid','expired','all'].includes(filter)?filter:'active';
+ const statusFilter=typeof filter==='string'&&['paid','unpaid','expired','all'].includes(filter)?filter:'paid';
  const paid=(r:Booking)=>r.payment_status==='paid';
  const expired=(r:Booking)=>!paid(r)&&r.status==='expired';
  const rows=records?.rows??[];
- const arrivals=event?rows.filter(r=>paid(r)&&r.metadata?.event_date===event.date&&r.metadata?.event_id===event.event.id).sort((a,b)=>arrivalOrder(a)-arrivalOrder(b)):[];
+ const paidGroups=new Map<string,Booking[]>();
+ for(const row of rows) if(paid(row)){
+  const key=bookingKey(row)??row.id;
+  const group=paidGroups.get(key)??[];
+  if(!group.includes(row))group.push(row);
+  paidGroups.set(key,group);
+ }
+ const primary=new Map<string,Booking[]>();
+ const repeats=new Set<string>();
+ for(const group of paidGroups.values()){
+  group.sort((a,b)=>a.created-b.created||a.id.localeCompare(b.id));
+  primary.set(group[0].id,group.slice(1));
+  for(const row of group.slice(1))repeats.add(row.id);
+ }
+ const arrivals=event?rows.filter(r=>primary.has(r.id)&&r.metadata?.event_date===event.date&&r.metadata?.event_id===event.event.id).sort((a,b)=>arrivalOrder(a)-arrivalOrder(b)):[];
  const visible=active==='tonight'?arrivals:rows.filter(r=>{
   const m=r.metadata??{};
   const digits=query.replace(/\D/g,'');
   return (!selectedDate||m.event_date===selectedDate)&&
    (!query||(m.guest_name??'').toLowerCase().includes(query.toLowerCase())||(digits.length>=3&&(m.guest_phone??'').replace(/\D/g,'').includes(digits)))&&
-   (statusFilter==='all'||(statusFilter==='active'&&!expired(r))||(statusFilter==='paid'&&paid(r))||(statusFilter==='unpaid'&&!paid(r)&&!expired(r))||(statusFilter==='expired'&&expired(r)));
+   (statusFilter==='all'||(statusFilter==='active'&&!expired(r))||(statusFilter==='paid'&&primary.has(r.id))||(statusFilter==='unpaid'&&!paid(r)&&!expired(r))||(statusFilter==='expired'&&expired(r)));
  });
  const nextParams=new URLSearchParams({view:'reservations',q:query,date:selectedDate,status:statusFilter});
  if(records?.next)nextParams.set('after',records.next);
@@ -88,7 +111,7 @@ export default async function Dashboard({searchParams}:{searchParams:Promise<{af
     <small>NEXT ON THE PUBLIC SCHEDULE</small>
     <h2>{event?.event.artist??'No upcoming events'}</h2>
     {event&&<p>{event.label} · {event.event.time}</p>}
-    {records&&!records.testMode&&event&&<strong>{arrivals.length} paid {arrivals.length===1?'deposit':'deposits'} in recent checkouts</strong>}
+    {records&&!records.testMode&&event&&<strong>{arrivals.length} paid {arrivals.length===1?'booking':'bookings'} with a paid deposit in recent checkouts</strong>}
    </section>}
    <div className="clubPanel clubRecords">
   {active==='applications'&&<section aria-label="Staff applications">
@@ -119,9 +142,13 @@ export default async function Dashboard({searchParams}:{searchParams:Promise<{af
    <input type="hidden" name="view" value="reservations"/>
    <label>Guest name or phone<input name="q" type="search" defaultValue={query} placeholder="Search bookings"/></label>
    <label>Event date<input name="date" type="date" defaultValue={selectedDate}/></label>
-   <label>Deposit status<select name="status" defaultValue={statusFilter}><option value="active">Hide expired</option><option value="paid">Deposit paid</option><option value="unpaid">Unpaid or pending</option><option value="expired">Expired</option><option value="all">All statuses</option></select></label>
+   <label>Deposit status<select name="status" defaultValue={statusFilter}><option value="paid">Paid bookings</option><option value="active">Active checkout records</option><option value="unpaid">Unpaid or pending</option><option value="expired">Expired</option><option value="all">All statuses</option></select></label>
    <button type="submit">Apply filters</button>
   </form>}
+  {active==='reservations'&&records&&!records.testMode&&statusFilter==='paid'&&<p>
+   <strong>{visible.length} paid {visible.length===1?'booking':'bookings'} shown.</strong>{' '}
+   Matching paid checkouts are grouped for review. Select All statuses to see each payment separately.
+  </p>}
   <p>A paid deposit does not confirm a table assignment.</p>
   {active==='tonight'&&<p><a href="/dashboard?view=reservations">View all reservations →</a></p>}
   {!records?<p role="alert">Reservations could not be loaded from Stripe. Refresh to retry.</p>:
@@ -131,7 +158,8 @@ export default async function Dashboard({searchParams}:{searchParams:Promise<{af
    {visible.map(row=>{
     const info=row.metadata!;
     const paid=row.payment_status==='paid';
-    const status=paid?'Deposit paid':row.status==='expired'?'Checkout expired':row.status==='complete'?'Payment pending':'Awaiting deposit';
+    const matching=primary.get(row.id)??[];
+    const status=repeats.has(row.id)?'Possible repeat payment':paid?'Deposit paid':row.status==='expired'?'Checkout expired':row.status==='complete'?'Payment pending':'Awaiting deposit';
     const amount=row.amount_total!==null&&row.currency==='usd'?new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(row.amount_total/100):null;
     return <details key={row.id} className="clubRecord">
      <summary><span><strong>{info.guest_name||'Guest'}</strong><small>{info.event_name||'Table reservation'} · {info.event_date||'Date unavailable'}</small><small>{info.arrival_time||'Arrival not set'} · {info.guest_count||'—'} guests</small><small>{info.floor||'Floor not set'} · {/^\d+$/.test(info.table||'')?'Table '+info.table:info.table||'No table selected'}</small></span><span className={paid?'clubBadge paid':'clubBadge'}>{status}{amount?' · '+amount:''}</span></summary>
@@ -140,6 +168,9 @@ export default async function Dashboard({searchParams}:{searchParams:Promise<{af
       {fields.map(([label,key])=><div key={key}><dt style={{color:'#b7baab',fontSize:13}}>{label}</dt><dd style={{margin:0}}>{info[key]?(key==='extras'?extras(info[key]):info[key]):'—'}</dd></div>)}
      </dl>
      <small>Stripe reference: {row.id}</small>
+     {paid&&<p>Prosper: {info.prosper_synced==='true'?'Workflow queued':'Workflow delivery not recorded'}</p>}
+     {matching.length>0&&<div><p role="status">{matching.length} additional paid {matching.length===1?'checkout matches':'checkouts match'} this booking. Review the payments in Stripe before issuing a refund.</p>
+      {matching.map(other=><p key={other.id}>{time.format(new Date(other.created*1000))} ET · <small>{other.id}</small></p>)}</div>}
     </details>;
    })}
   </section>

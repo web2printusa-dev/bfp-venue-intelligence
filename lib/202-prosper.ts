@@ -2,7 +2,7 @@ import 'server-only';
 
 export const CLUB_LOCATION_ID = 'oIYe14RPMLuOrnMceJAC';
 const WORKFLOWS = {
-  reservation: 'e44fbccc-96c3-4ec2-80f3-f66534bd7245',
+  reservation: 'b42d8c2c-784c-4b39-a034-b8aac477b1c9',
   application: '2b404760-0331-443c-9069-b77e37f699e7',
 };
 type Submission = {
@@ -52,15 +52,15 @@ export async function saveClubSubmission(input: Submission) {
   const encoded = encodeURIComponent(contactId);
   const marker = '[202 submission: ' + input.reference + ']';
   const existing = await crm('/contacts/' + encoded + '/notes');
-  const notes: {body?: string}[] = existing.notes || [];
-  const recorded = notes.some(note => note.body?.includes(marker));
+  const notes: {body?: string; bodyText?: string}[] = existing.notes || [];
+  const recorded = notes.some(note => (note.bodyText || note.body)?.includes(marker));
   if (!recorded) {
     await crm('/contacts/' + encoded + '/notes', 'POST', {
       body: marker + '\n' + input.details,
     });
   }
   const completeMarker = '[202 workflow queued: ' + input.reference + ']';
-  if (!notes.some(note => note.body?.includes(completeMarker))) {
+  if (!notes.some(note => (note.bodyText || note.body)?.includes(completeMarker))) {
     // Enroll directly for every new submission, including returning guests whose tag already exists.
     await crm('/contacts/' + encoded + '/workflow/' + WORKFLOWS[input.kind], 'POST', {});
     await crm('/contacts/' + encoded + '/notes', 'POST', {body: completeMarker});

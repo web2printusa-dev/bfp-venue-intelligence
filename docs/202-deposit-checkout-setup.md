@@ -1,19 +1,29 @@
-# 202 Lounge deposit checkout setup
+# 202 Lounge paid table reservations
 
-The reservation flow charges a fixed $250 deposit through Stripe Checkout. The remaining balance, if any, is confirmed by 202 Lounge and paid directly to the club.
+The current Stripe deposit is $100 USD. The protected Bookings dashboard reads
+live Stripe checkout records. Its default view groups paid checkouts with
+matching guest, event date, floor, table, arrival time, and party size. All
+statuses shows the underlying checkouts. Grouping does not refund payments.
 
-Set these Vercel Production environment variables before enabling live reservations:
+## Production integration
 
-- `STRIPE_SECRET_KEY`: existing Stripe secret key for the club's account.
-- `STRIPE_WEBHOOK_SECRET`: signing secret for the webhook endpoint below.
-- `RESEND_API_KEY`: Resend API key used to email paid reservations.
-- `RESERVATION_FROM_EMAIL`: verified sender address in Resend.
-- `TWILIO_ACCOUNT_SID`: Twilio account SID.
-- `TWILIO_AUTH_TOKEN`: Twilio auth token.
-- `TWILIO_FROM_NUMBER` or `TWILIO_MESSAGING_SERVICE_SID`: sender identity in Twilio.
+- `STRIPE_SECRET_KEY`: live API key for the 202 Lounge Stripe account.
+- `STRIPE_WEBHOOK_SECRET`: signing secret for the destination on that account.
+- `PROSPER_API_KEY`: token for the 202 Lounge DC location with permission
+  to upsert contacts, read and write notes, and enroll contacts in workflows.
 
-The club notification recipients default to `202loungemedia@gmail.com` and `+12025209070`. Optional overrides are `CLUB_RESERVATION_EMAIL` and `CLUB_RESERVATION_PHONE`.
+Point Stripe to the canonical production host at `/api/202/webhook`.
+Subscribe to `checkout.session.completed` and
+`checkout.session.async_payment_succeeded`. Verify event deliveries in Stripe
+Workbench and confirm the endpoint returns 2xx without a redirect.
 
-Create a Stripe webhook endpoint at `https://202loungedc.com/api/202/webhook` (or the current production domain until DNS is connected), subscribed to `checkout.session.completed` and `checkout.session.async_payment_succeeded`. Copy its `whsec_` signing secret to `STRIPE_WEBHOOK_SECRET`.
+For a paid live $100 table deposit, the webhook saves the booking details as
+a contact note and enrolls the guest in **202 Lounge | Paid Website Booking
+Alert**. This workflow emails the club inbox with a link to the private
+Bookings dashboard. Re-entry is enabled so returning guests are eligible.
+The dashboard marks successful workflow enrollment as **Workflow queued**;
+verify actual email delivery in Prosper Execution Logs and the club inbox.
 
-A paid session sends a reservation email and SMS to the club. Each delivery is recorded in the Stripe Checkout Session metadata so Stripe retries can resume a partial notification without repeating the earlier successful delivery.
+Do not replay multiple old payments for the same booking merely to reconcile
+counts. Reconcile the payment and intended date first; sending a workflow
+alert is separate from reviewing or refunding a charge.
