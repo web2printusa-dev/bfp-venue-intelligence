@@ -6,7 +6,7 @@ const WORKFLOWS = {
   application: '2b404760-0331-443c-9069-b77e37f699e7',
 };
 type Submission = {
-  kind: keyof typeof WORKFLOWS; reference: string; name: string; email: string; phone: string; details: string;
+  kind: keyof typeof WORKFLOWS; reference: string; name: string; email: string; phone: string; details: string; emailDetails?: string;
 };
 
 async function crm(path: string, method = 'GET', body?: unknown, version = '2021-07-28') {
@@ -45,6 +45,9 @@ export async function saveClubSubmission(input: Submission) {
     lastName: parts.slice(1).join(' ') || undefined,
     email: input.email.toLowerCase(),
     phone: normalizePhone(input.phone),
+    ...(input.kind === 'reservation' && input.emailDetails ? {
+      customFields: [{ key: '202_reservation_details', fieldValue: input.emailDetails }],
+    } : {}),
     source: input.kind === 'reservation' ? '202 Website — Paid Table Deposit' : '202 Website — Employment Application',
   });
   const contactId = result.contact?.id;

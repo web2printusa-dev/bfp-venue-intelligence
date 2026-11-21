@@ -19,8 +19,7 @@ Workbench and confirm the endpoint returns 2xx without a redirect.
 
 For a paid live $100 table deposit, the webhook saves the booking details as
 a contact note and enrolls the guest in **202 Lounge | Paid Website Booking
-Alert**. This workflow emails the club inbox with a link to the private
-Bookings dashboard. Re-entry is enabled so returning guests are eligible.
+Alert**. This workflow emails the club inbox with the reservation details directly in the message. Re-entry is enabled so returning guests are eligible.
 The dashboard marks successful workflow enrollment as **Workflow queued**;
 verify actual email delivery in Prosper Execution Logs and the club inbox.
 

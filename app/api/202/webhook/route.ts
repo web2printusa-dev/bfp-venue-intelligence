@@ -82,9 +82,38 @@ export async function POST(request: Request) {
         'Stripe payment: ' + session.payment_intent,
         'Confirm table availability and any balance directly with the guest.',
       ].join('\n');
+      const eventDate = /^\d{4}-\d{2}-\d{2}$/.test(m.event_date || '')
+        ? new Date(m.event_date + 'T12:00:00Z') : null;
+      const dateLabel = eventDate && Number.isFinite(eventDate.getTime())
+        ? new Intl.DateTimeFormat('en-US', {dateStyle:'full',timeZone:'America/New_York'}).format(eventDate)
+        : m.event_date || 'Not provided';
+      const arrival = /^(\d{2}):(\d{2})$/.exec(m.arrival_time || '');
+      const hours = arrival ? Number(arrival[1]) : 0;
+      const arrivalLabel = arrival ? (hours % 12 || 12) + ':' + arrival[2] + (hours < 12 ? ' AM ET' : ' PM ET') : m.arrival_time || 'Not provided';
+      let bottles = m.extras || 'None';
+      try {
+        const extras = JSON.parse(m.extras || '[]');
+        if (Array.isArray(extras)) bottles = extras.map(extra => extra.quantity + ' × ' + extra.name).join(', ') || 'None';
+      } catch {}
+      const emailDetails = [
+        'Event: ' + (m.event_name || '202 Lounge table booking'),
+        'Reservation date: ' + dateLabel,
+        'Arrival: ' + arrivalLabel + (arrival && hours < 6 ? ' (after midnight)' : ''),
+        'Guest: ' + (m.guest_name || session.customer_details?.name || 'Not provided'),
+        'Email: ' + email,
+        'Phone: ' + (m.guest_phone || 'Not provided'),
+        'Party size: ' + (m.guest_count || 'Not provided'),
+        'Floor: ' + (m.floor || 'Not provided'),
+        'Preferred table: ' + (m.table || 'No preference'),
+        'Package: ' + (m.package || 'None') + (m.package_details ? ' — ' + m.package_details : ''),
+        'Extra bottles: ' + bottles,
+        'Occasion: ' + (m.occasion || 'None'),
+        'Special requests: ' + (m.special_requests || 'None'),
+        'Deposit paid: $100.00',
+      ].map(line => line.replace(/[<>]/g, '')).join(' • ');
       await saveClubSubmission({ kind: 'reservation', reference: session.id,
         name: m.guest_name || session.customer_details?.name || 'Guest',
-        email, phone: m.guest_phone || '', details });
+        email, phone: m.guest_phone || '', details, emailDetails });
       await setDeliveryFlag(session.id, 'prosper_synced');
     }
     return NextResponse.json({ received: true });
