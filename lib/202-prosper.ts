@@ -70,11 +70,11 @@ export async function saveClubSubmission(input: Submission) {
 
 export async function listClubApplications(page: number) {
   const pageLimit = 20;
-  const result = await crm('/contacts/search', 'POST', {locationId: CLUB_LOCATION_ID, page, pageLimit}, '2023-02-21');
+  const result: {contacts: {id: string; locationId?: string}[]} = await crm('/contacts/search', 'POST', {locationId: CLUB_LOCATION_ID, page, pageLimit}, '2023-02-21');
   if (!Array.isArray(result.contacts)) throw new Error('Unexpected Prosper response');
   const notes = await Promise.allSettled(result.contacts.map(async (contact: {id: string; locationId?: string}) => {
     if (!contact.id || (contact.locationId && contact.locationId !== CLUB_LOCATION_ID)) return [];
-    const data = await crm('/contacts/' + encodeURIComponent(contact.id) + '/notes', 'GET', undefined, 'v3');
+    const data: {notes: {id: string; body?: string; bodyText?: string}[]} = await crm('/contacts/' + encodeURIComponent(contact.id) + '/notes', 'GET', undefined, 'v3');
     if (!Array.isArray(data.notes)) throw new Error('Unexpected Prosper notes response');
     return data.notes.flatMap((note: {id: string; body?: string; bodyText?: string}) => {
       const body = note.bodyText || note.body || '';
