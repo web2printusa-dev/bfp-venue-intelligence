@@ -41,43 +41,55 @@ function extras(value:string){
  return value;
 }
 
-export default async function Dashboard({searchParams}:{searchParams:Promise<{after?:string; view?:string; page?:string}>}){
+export default async function Dashboard({searchParams}:{searchParams:Promise<{after?:string; view?:string; page?:string; q?:string; date?:string; status?:string}>}){
  if(!adminConfigured())redirect('/admin');
  const session=await auth();
  if(!session?.user)redirect('/admin');
- const {after,view,page}=await searchParams;
+ const {after,view,page,q,date,status:filter}=await searchParams;
  const active=view==='applications'||view==='events'||view==='reservations'?view:'tonight';
- const navigation=[['tonight','Tonight'],['reservations','Reservations'],['applications','Hiring'],['events','Events']] as const;
- const upcoming=active==='tonight'||active==='events'?upcomingOccurrences():[];
+ const navigation=[['tonight','Tonight'],['reservations','Bookings'],['applications','Hiring'],['events','Events']] as const;
+ const upcoming=upcomingOccurrences();
  const applicationPage=typeof page==='string'&&/^[1-9][0-9]{0,2}$/.test(page)?Math.min(500,Number(page)):1;
  let applications:Awaited<ReturnType<typeof listClubApplications>>|null=null;
  if(active==='applications')try {applications=await listClubApplications(applicationPage);} catch {}
  const cursor=typeof after==='string'&&/^cs_[a-zA-Z0-9_]{1,200}$/.test(after)?after:undefined;
  let records:Awaited<ReturnType<typeof reservations>>|null=null;
  if(active==='reservations'||active==='tonight')try {records=await reservations(cursor);} catch {}
+ const event=upcoming[0];
+ const query=typeof q==='string'?q.trim().slice(0,100):'';
+ const selectedDate=typeof date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(date)?date:'';
+ const statusFilter=typeof filter==='string'&&['paid','unpaid','expired','all'].includes(filter)?filter:'active';
+ const paid=(r:Booking)=>r.payment_status==='paid';
+ const expired=(r:Booking)=>!paid(r)&&r.status==='expired';
+ const rows=records?.rows??[];
+ const arrivals=event?rows.filter(r=>paid(r)&&r.metadata?.event_date===event.date&&r.metadata?.event_id===event.event.id).sort((a,b)=>arrivalOrder(a)-arrivalOrder(b)):[];
+ const visible=active==='tonight'?arrivals:rows.filter(r=>{
+  const m=r.metadata??{};
+  const digits=query.replace(/\D/g,'');
+  return (!selectedDate||m.event_date===selectedDate)&&
+   (!query||(m.guest_name??'').toLowerCase().includes(query.toLowerCase())||(digits.length>=3&&(m.guest_phone??'').replace(/\D/g,'').includes(digits)))&&
+   (statusFilter==='all'||(statusFilter==='active'&&!expired(r))||(statusFilter==='paid'&&paid(r))||(statusFilter==='unpaid'&&!paid(r)&&!expired(r))||(statusFilter==='expired'&&expired(r)));
+ });
+ const nextParams=new URLSearchParams({view:'reservations',q:query,date:selectedDate,status:statusFilter});
+ if(records?.next)nextParams.set('after',records.next);
  return <main className="clubAdmin">
   <style>{adminStyles}</style>
   <aside className="clubSidebar">
    <a href="/dashboard" className="clubBrand"><img src="/202/logo.webp" alt="" width="44" height="44"/><span><strong>202 Lounge</strong><small>Owner workspace</small></span></a>
    <nav aria-label="Club operations"><small>WORKSPACE</small>{navigation.map(([id,label],index)=>
-    <a key={id} href={id==='tonight'?'/dashboard':'/dashboard?view='+id} aria-current={active===id?'page':undefined}><span className="clubIcon" aria-hidden>{['▦','▤','♙','◫'][index]}</span>{id==='tonight'?'Overview':id==='applications'?'Staff applications':label}</a>)}</nav>
+    <a key={id} href={id==='tonight'?'/dashboard':'/dashboard?view='+id} aria-current={active===id?'page':undefined}><span className="clubIcon" aria-hidden>{['▦','▤','♙','◫'][index]}</span>{label}</a>)}</nav>
    <div className="clubSidebarFoot"><a href="/">View public site ↗</a><form action={async()=>{'use server';await signOut({redirectTo:'/admin'});}}><button type="submit">Sign out</button></form></div>
   </aside>
   <section className="clubWorkspace">
-   <div className="clubTopbar"><span>202 Lounge / {active==='tonight'?'Overview':active==='applications'?'Staff applications':navigation.find(([id])=>id===active)?.[1]}</span><span>Washington, DC</span></div>
+   <div className="clubTopbar"><span>202 Lounge / {active==='tonight'?'Tonight':active==='applications'?'Staff applications':navigation.find(([id])=>id===active)?.[1]}</span><span>Washington, DC</span></div>
    <div className="clubContent">
-   <header className="clubHeading"><div><small>OPERATIONS</small><h1>{active==='tonight'?'Club overview':active==='applications'?'Staff applications':navigation.find(([id])=>id===active)?.[1]}</h1></div>{active==='reservations'&&<a className="clubButton" href="/dashboard?view=reservations">Refresh records</a>}</header>
-   {active==='tonight'&&<>
-    <div className="clubMetrics">
-     <article><small>RECENT CHECKOUTS</small><strong>{records&&!records.testMode?records.rows.length:'—'}</strong><span>Latest Stripe results</span></article>
-     <article><small>PAID DEPOSITS</small><strong>{records&&!records.testMode?records.rows.filter(r=>r.payment_status==='paid').length:'—'}</strong><span>Among recent checkouts</span></article>
-     <article><small>UPCOMING EVENTS</small><strong>{upcoming.length}</strong><span>Public schedule</span></article>
-    </div>
-    <div className="clubOverview">
-     <section className="clubPanel"><h2>Upcoming events</h2>{upcoming.slice(0,4).map(({key,label,event})=><p key={key}>{label} · {event.artist}</p>)}<a href="/dashboard?view=events">View schedule →</a></section>
-     <section className="clubPanel"><h2>Staff applications</h2><a href="/dashboard?view=applications">Review applications →</a></section>
-    </div>
-   </>}
+   <header className="clubHeading"><div><small>OPERATIONS</small><h1>{active==='tonight'?'Tonight':active==='applications'?'Staff applications':navigation.find(([id])=>id===active)?.[1]}</h1></div>{active==='reservations'&&<a className="clubButton" href="/dashboard?view=reservations">Refresh records</a>}</header>
+   {active==='tonight'&&<section className="clubPanel clubNext">
+    <small>NEXT ON THE PUBLIC SCHEDULE</small>
+    <h2>{event?.event.artist??'No upcoming events'}</h2>
+    {event&&<p>{event.label} · {event.event.time}</p>}
+    {records&&!records.testMode&&event&&<strong>{arrivals.length} paid {arrivals.length===1?'deposit':'deposits'} in recent checkouts</strong>}
+   </section>}
    <div className="clubPanel clubRecords">
   {active==='applications'&&<section aria-label="Staff applications">
    <h2>Staff applications</h2>
@@ -98,22 +110,29 @@ export default async function Dashboard({searchParams}:{searchParams:Promise<{af
   {active==='events'&&<section aria-label="Upcoming events">
    <h2>Upcoming events</h2>
    <p>Schedule shown on the public site.</p>
-   <ul style={{display:'grid',gap:10,paddingLeft:20}}>{upcoming.map(({event,date,label})=><li key={event.id+'-'+date}><strong>{event.artist}</strong> · {label} · {event.time}</li>)}</ul>
+   <ul style={{display:'grid',gap:10,paddingLeft:20}}>{upcoming.map(({event,date,label})=><li key={event.id+'-'+date}><strong>{event.artist}</strong> · {label} · {event.time} · <a href={'/dashboard?view=reservations&date='+date}>View bookings →</a></li>)}</ul>
   </section>}
-  {(active==='reservations'||active==='tonight')&&<><h2>Table reservations</h2>
-  <p>Submitted bookings appear once checkout opens. A paid deposit does not confirm table availability.</p>
+  {(active==='reservations'||active==='tonight')&&<><h2>{active==='tonight'?'Upcoming arrivals':'Table bookings'}</h2>
+  {active==='reservations'&&<form className="clubFilters" action="/dashboard">
+   <input type="hidden" name="view" value="reservations"/>
+   <label>Guest name or phone<input name="q" type="search" defaultValue={query} placeholder="Search bookings"/></label>
+   <label>Event date<input name="date" type="date" defaultValue={selectedDate}/></label>
+   <label>Deposit status<select name="status" defaultValue={statusFilter}><option value="active">Hide expired</option><option value="paid">Deposit paid</option><option value="unpaid">Unpaid or pending</option><option value="expired">Expired</option><option value="all">All statuses</option></select></label>
+   <button type="submit">Apply filters</button>
+  </form>}
+  <p>A paid deposit does not confirm a table assignment.</p>
   {active==='tonight'&&<p><a href="/dashboard?view=reservations">View all reservations →</a></p>}
   {!records?<p role="alert">Reservations could not be loaded from Stripe. Refresh to retry.</p>:
    records.testMode?<p role="alert">The site is connected to Stripe test mode. Live bookings are unavailable.</p>:
-   records.rows.length===0?<p>No live 202 Lounge reservations on this page.</p>:null}
+   visible.length===0?<p>{active==='tonight'?'No paid arrivals for this event in recent checkouts.':'No matching bookings on this page.'}</p>:null}
   <section aria-label="Reservation records" style={{display:'grid',gap:16}}>
-   {records?.rows.slice(0,active==='tonight'?5:undefined).map(row=>{
+   {visible.map(row=>{
     const info=row.metadata!;
     const paid=row.payment_status==='paid';
     const status=paid?'Deposit paid':row.status==='expired'?'Checkout expired':row.status==='complete'?'Payment pending':'Awaiting deposit';
     const amount=row.amount_total!==null&&row.currency==='usd'?new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(row.amount_total/100):null;
     return <details key={row.id} className="clubRecord">
-     <summary><span><strong>{info.guest_name||'Guest'}</strong><small>{info.event_name||'Table reservation'} · {info.event_date||'Date unavailable'}</small></span><span className={paid?'clubBadge paid':'clubBadge'}>{status}{amount?' · '+amount:''}</span></summary>
+     <summary><span><strong>{info.guest_name||'Guest'}</strong><small>{info.event_name||'Table reservation'} · {info.event_date||'Date unavailable'}</small><small>{info.arrival_time||'Arrival not set'} · {info.guest_count||'—'} guests</small><small>{info.floor||'Floor not set'} · {/^\d+$/.test(info.table||'')?'Table '+info.table:info.table||'No table selected'}</small></span><span className={paid?'clubBadge paid':'clubBadge'}>{status}{amount?' · '+amount:''}</span></summary>
      <p>Submitted {time.format(new Date(row.created*1000))} ET</p>
      <dl style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(185px,1fr))',gap:12}}>
       {fields.map(([label,key])=><div key={key}><dt style={{color:'#b7baab',fontSize:13}}>{label}</dt><dd style={{margin:0}}>{info[key]?(key==='extras'?extras(info[key]):info[key]):'—'}</dd></div>)}
@@ -122,12 +141,19 @@ export default async function Dashboard({searchParams}:{searchParams:Promise<{af
     </details>;
    })}
   </section>
-  {active==='reservations'&&records?.next&&<p><a style={{color:'#c4f432'}} href={'/dashboard?view=reservations&after='+encodeURIComponent(records.next)}>Older checkout records →</a></p>}
+  {active==='reservations'&&records?.next&&<p><a style={{color:'#c4f432'}} href={'/dashboard?'+nextParams.toString()}>Older checkout records →</a></p>}
   </>}
    </div>
    </div>
   </section>
  </main>;
+}
+
+function arrivalOrder(row:Booking){
+ const match=/^(\d{2}):(\d{2})$/.exec(row.metadata?.arrival_time??'');
+ if(!match)return Infinity;
+ const hours=Number(match[1]);
+ return (hours<6?hours+24:hours)*60+Number(match[2]);
 }
 
 const adminStyles=`
@@ -149,5 +175,7 @@ const adminStyles=`
 .clubMetrics strong,.clubMetrics span{display:block}.clubMetrics strong{font-size:32px;margin:4px 0}.clubMetrics span{color:var(--muted);font-size:12px}
 .clubRecord{border-top:1px solid var(--line);padding:12px 0;overflow-wrap:anywhere}.clubRecord summary{cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px}.clubRecord summary strong,.clubRecord summary small{display:block}.clubRecord summary strong:before{content:'›';color:var(--lime);margin-right:7px}.clubRecord[open] summary strong:before{content:'⌄'}
 .clubBadge{border-radius:100px;padding:4px 9px;background:#332d24;color:#efcc84;font-size:12px;font-weight:700}.clubBadge.paid{color:#d9f99f;background:#293721}
-@media(max-width:720px){.clubAdmin{grid-template-columns:1fr}.clubSidebar{position:sticky;z-index:5;height:auto;border-right:0;border-bottom:1px solid var(--line);padding:9px 12px;gap:6px;display:grid;grid-template-columns:1fr auto}.clubSidebar nav{grid-row:2;grid-column:1/-1;display:flex;overflow:auto}.clubSidebar nav>small{display:none}.clubSidebar nav a{font-size:13px;padding:8px}.clubBrand img{width:32px;height:32px}.clubBrand small,.clubSidebarFoot>a{display:none}.clubSidebarFoot{padding:0}.clubTopbar{display:none}.clubOverview{grid-template-columns:1fr}.clubMetrics{gap:7px}.clubMetrics article{padding:10px}.clubMetrics strong{font-size:24px}}
+ .clubNext>small{color:var(--lime);font-weight:700;letter-spacing:.08em}.clubNext h2{margin-top:8px}
+.clubFilters{display:flex;align-items:end;flex-wrap:wrap;gap:10px;margin:14px 0}.clubFilters label{display:grid;gap:4px;font-size:12px;color:var(--muted)}.clubFilters input,.clubFilters select,.clubFilters button{font:inherit;font-size:16px;min-height:44px;padding:8px 10px;color:#fff;background:#101210;border:1px solid var(--line);border-radius:8px}.clubFilters button{color:#111;background:var(--lime);font-weight:700;cursor:pointer}
+@media(max-width:720px){.clubAdmin{grid-template-columns:1fr;display:block}.clubSidebar{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line);padding:10px 12px;display:flex;flex-direction:row;justify-content:space-between;align-items:center}.clubSidebar nav{position:fixed;bottom:0;left:0;right:0;z-index:50;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px;padding:5px 4px calc(5px + env(safe-area-inset-bottom));background:#151714;border-top:1px solid var(--line)}.clubSidebar nav>small{display:none}.clubSidebar nav a{display:grid;justify-items:center;gap:3px;font-size:12px;padding:7px 2px;min-height:47px}.clubBrand img{width:32px;height:32px}.clubBrand small,.clubSidebarFoot>a{display:none}.clubSidebarFoot{padding:0}.clubTopbar{display:none}.clubContent{padding-bottom:calc(90px + env(safe-area-inset-bottom))}.clubFilters label{flex:1 1 135px;min-width:0}.clubFilters input,.clubFilters select{width:100%;min-width:0}.clubFilters button{width:100%}.clubRecord summary{align-items:start}.clubBadge{max-width:43%;text-align:center}}
 `;
