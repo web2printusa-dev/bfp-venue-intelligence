@@ -9,13 +9,13 @@ type Submission = {
   kind: keyof typeof WORKFLOWS; reference: string; name: string; email: string; phone: string; details: string;
 };
 
-async function crm(path: string, method = 'GET', body?: unknown) {
+async function crm(path: string, method = 'GET', body?: unknown, version = '2021-07-28') {
   if (!process.env.PROSPER_API_KEY) throw new Error('Prosper connection is not configured');
   const response = await fetch('https://services.leadconnectorhq.com' + path, {
     method,
     headers: {
       Authorization: 'Bearer ' + process.env.PROSPER_API_KEY,
-      Version: '2021-07-28', 'Content-Type': 'application/json',
+      Version: version, 'Content-Type': 'application/json',
     },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     cache: 'no-store',
@@ -66,4 +66,21 @@ export async function saveClubSubmission(input: Submission) {
     await crm('/contacts/' + encoded + '/notes', 'POST', {body: completeMarker});
   }
   return { contactId };
+}
+
+export async function listClubApplications(page: number) {
+  const pageLimit = 20;
+  const result = await crm('/contacts/search', 'POST', {locationId: CLUB_LOCATION_ID, page, pageLimit}, '2023-02-21');
+  if (!Array.isArray(result.contacts)) throw new Error('Unexpected Prosper response');
+  const notes = await Promise.allSettled(result.contacts.map(async (contact: {id: string; locationId?: string}) => {
+    if (!contact.id || (contact.locationId && contact.locationId !== CLUB_LOCATION_ID)) return [];
+    const data = await crm('/contacts/' + encodeURIComponent(contact.id) + '/notes', 'GET', undefined, 'v3');
+    if (!Array.isArray(data.notes)) throw new Error('Unexpected Prosper notes response');
+    return data.notes.flatMap((note: {id: string; body?: string; bodyText?: string}) => {
+      const body = note.bodyText || note.body || '';
+      return /^\[202 submission: application-[a-f0-9]+\]/.test(body.trim()) ? [{id: contact.id + '-' + note.id, body}] : [];
+    });
+  }));
+  return {rows: notes.flatMap(note => note.status === 'fulfilled' ? note.value : []),
+    partial: notes.some(note => note.status === 'rejected'), next: page < 500 && result.contacts.length === pageLimit};
 }
