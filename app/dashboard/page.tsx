@@ -46,24 +46,39 @@ export default async function Dashboard({searchParams}:{searchParams:Promise<{af
  const session=await auth();
  if(!session?.user)redirect('/admin');
  const {after,view,page}=await searchParams;
- const active=view==='applications'||view==='events'?view:'reservations';
+ const active=view==='applications'||view==='events'||view==='reservations'?view:'tonight';
+ const navigation=[['tonight','Tonight'],['reservations','Reservations'],['applications','Hiring'],['events','Events']] as const;
+ const upcoming=active==='tonight'||active==='events'?upcomingOccurrences():[];
  const applicationPage=typeof page==='string'&&/^[1-9][0-9]{0,2}$/.test(page)?Math.min(500,Number(page)):1;
  let applications:Awaited<ReturnType<typeof listClubApplications>>|null=null;
  if(active==='applications')try {applications=await listClubApplications(applicationPage);} catch {}
  const cursor=typeof after==='string'&&/^cs_[a-zA-Z0-9_]{1,200}$/.test(after)?after:undefined;
  let records:Awaited<ReturnType<typeof reservations>>|null=null;
- if(active==='reservations')try {records=await reservations(cursor);} catch {}
- return <main style={{maxWidth:1000,margin:'auto',padding:'clamp(20px,5vw,56px)',color:'#f8f7ed',background:'#121310',minHeight:'100vh'}}>
-  <header style={{display:'flex',gap:16,alignItems:'center',justifyContent:'space-between',flexWrap:'wrap'}}>
-   <div><p style={{color:'#c4f432',letterSpacing:3}}>202 LOUNGE · ADMIN</p><h1>Operations hub</h1></div>
-   <form action={async()=>{'use server';await signOut({redirectTo:'/admin'});}}><button style={{background:'#c4f432',color:'#111',padding:'12px 20px',borderRadius:8,border:0,fontWeight:700}}>Sign out</button></form>
-  </header>
-  <nav aria-label="Operations" style={{display:'flex',gap:12,flexWrap:'wrap',margin:'20px 0 28px'}}>
-   {([['reservations','Reservations'],['applications','Staff applications'],['events','Upcoming events']] as const).map(([id,label])=>
-    <a key={id} href={id==='reservations'?'/dashboard':'/dashboard?view='+id} aria-current={active===id?'page':undefined}
-      style={{background:active===id?'#c4f432':'#20221a',color:active===id?'#111':'#f8f7ed',padding:'10px 15px',borderRadius:8,fontWeight:700}}>{label}</a>)}
-   <a href="/" style={{color:'#c4f432',padding:'10px 0'}}>Public website ↗</a>
-  </nav>
+ if(active==='reservations'||active==='tonight')try {records=await reservations(cursor);} catch {}
+ return <main className="dash">
+  <aside className="rail">
+   <a href="/" className="dashLogo" aria-label="202 Lounge website">202<span>°</span></a>
+   <nav className="railNav" aria-label="Command center"><b>COMMAND CENTER</b>{navigation.map(([id,label])=>
+    <a key={id} href={id==='tonight'?'/dashboard':'/dashboard?view='+id} aria-current={active===id?'page':undefined} style={{display:'block',padding:'12px',borderRadius:6,color:active===id?'#c4f432':'inherit',background:active===id?'#232819':undefined}}>{label}</a>)}</nav>
+   <nav className="mobileNav" aria-label="Command center" style={{overflowX:'auto'}}>{navigation.map(([id,label])=>
+    <a key={id} href={id==='tonight'?'/dashboard':'/dashboard?view='+id} aria-current={active===id?'page':undefined} style={{display:'inline-block',padding:'9px',color:active===id?'#c4f432':'inherit'}}>{label}</a>)}</nav>
+  </aside>
+  <section className="dashMain">
+   <header><div><small>WASHINGTON, DC / OWNER COMMAND CENTER</small><h1>{active==='tonight'?'GOOD EVENING.':navigation.find(([id])=>id===active)?.[1].toUpperCase()+'.'}</h1></div>
+    <div style={{display:'flex',flexWrap:'wrap',gap:12,alignItems:'center'}}><a href="/">VIEW LIVE SITE ↗</a><form action={async()=>{'use server';await signOut({redirectTo:'/admin'});}}><button type="submit">Sign out</button></form></div>
+   </header>
+   {active==='tonight'&&<>
+    <div className="metrics">
+     <article><small>RECENT CHECKOUTS</small><strong>{records&&!records.testMode?records.rows.length:'—'}</strong><span>Latest Stripe results</span></article>
+     <article><small>PAID DEPOSITS</small><strong>{records&&!records.testMode?records.rows.filter(r=>r.payment_status==='paid').length:'—'}</strong><span>Among recent checkouts</span></article>
+     <article><small>UPCOMING EVENTS</small><strong>{upcoming.length}</strong><span>Public schedule</span></article>
+    </div>
+    <div className="opsGrid">
+     <section className="panel"><h2>Upcoming events</h2>{upcoming.slice(0,4).map(({key,label,event})=><p key={key}>{label} · {event.artist}</p>)}<a href="/dashboard?view=events">View schedule →</a></section>
+     <section className="panel"><h2>Staff applications</h2><a href="/dashboard?view=applications">Review applications →</a></section>
+    </div>
+   </>}
+   <div className="panel fullPanel">
   {active==='applications'&&<section aria-label="Staff applications">
    <h2>Staff applications</h2>
    {!applications||applications.partial?<p role="alert">{applications?'Some application records could not be loaded.':'Could not load applications from Prosper.'} <a href={'/dashboard?view=applications&page='+applicationPage}>Retry</a> · <a href="https://app.bornforprosperity.com/">Open Prosper</a></p>:null}
@@ -83,16 +98,16 @@ export default async function Dashboard({searchParams}:{searchParams:Promise<{af
   {active==='events'&&<section aria-label="Upcoming events">
    <h2>Upcoming events</h2>
    <p>Schedule shown on the public site.</p>
-   <ul style={{display:'grid',gap:10,paddingLeft:20}}>{upcomingOccurrences().map(({event,date,label})=><li key={event.id+'-'+date}><strong>{event.artist}</strong> · {label} · {event.time}</li>)}</ul>
+   <ul style={{display:'grid',gap:10,paddingLeft:20}}>{upcoming.map(({event,date,label})=><li key={event.id+'-'+date}><strong>{event.artist}</strong> · {label} · {event.time}</li>)}</ul>
   </section>}
-  {active==='reservations'&&<><h2>Table reservations</h2>
+  {(active==='reservations'||active==='tonight')&&<><h2>Table reservations</h2>
   <p>Submitted bookings appear once checkout opens. A paid deposit does not confirm table availability.</p>
-  <p><a href="/dashboard" style={{color:'#c4f432'}}>Refresh / newest bookings</a></p>
+  <p><a href="/dashboard?view=reservations" style={{color:'#c4f432'}}>Refresh / newest bookings</a></p>
   {!records?<p role="alert">Reservations could not be loaded from Stripe. Refresh to retry.</p>:
    records.testMode?<p role="alert">The site is connected to Stripe test mode. Live bookings are unavailable.</p>:
    records.rows.length===0?<p>No live 202 Lounge reservations on this page.</p>:null}
   <section aria-label="Reservation records" style={{display:'grid',gap:16}}>
-   {records?.rows.map(row=>{
+   {records?.rows.slice(0,active==='tonight'?5:undefined).map(row=>{
     const info=row.metadata!;
     const paid=row.payment_status==='paid';
     const status=paid?'Deposit paid':row.status==='expired'?'Checkout expired':row.status==='complete'?'Payment pending':'Awaiting deposit';
@@ -108,7 +123,9 @@ export default async function Dashboard({searchParams}:{searchParams:Promise<{af
     </article>;
    })}
   </section>
-  {records?.next&&<p><a style={{color:'#c4f432'}} href={'/dashboard?after='+encodeURIComponent(records.next)}>Older checkout records →</a></p>}
+  {active==='reservations'&&records?.next&&<p><a style={{color:'#c4f432'}} href={'/dashboard?view=reservations&after='+encodeURIComponent(records.next)}>Older checkout records →</a></p>}
   </>}
+   </div>
+  </section>
  </main>;
 }
