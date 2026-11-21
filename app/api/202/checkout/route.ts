@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { NextResponse } from 'next/server';
+import { saveReservationBirthdate } from '../../../../lib/202-prosper';
 import { arrivalOptions, bottles, packagesFor, tables, upcomingOccurrences, maxReservationGuests } from '../../../../lib/202-lounge-public';
 
 export const runtime = 'nodejs';
@@ -38,6 +39,14 @@ export async function POST(request: Request) {
     const phone = clean(body.phone, 30);
     if (name.length < 2 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || phone.length < 7) {
       return NextResponse.json({ error: 'Enter a valid name, email, and mobile number.' }, { status: 400 });
+    }
+
+    const birthdate = typeof body.birthdate === 'string' ? body.birthdate : '';
+    const parsedBirthdate = new Date(birthdate + 'T00:00:00Z');
+    const today = new Date().toLocaleDateString('en-CA', {timeZone:'America/New_York'});
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(birthdate) || birthdate < '0001-01-01' || birthdate > today ||
+        !Number.isFinite(parsedBirthdate.getTime()) || parsedBirthdate.toISOString().slice(0, 10) !== birthdate) {
+      return NextResponse.json({ error: 'Enter a valid birthdate for the reservation holder.' }, { status: 400 });
     }
 
     const packageId = clean(body.packageId, 80);
@@ -95,6 +104,11 @@ export async function POST(request: Request) {
       lookup.set('starting_after',prior.data.at(-1).id);
     }
     if(foundOpen) return NextResponse.json({error:'Checkout is already open for this booking. Return to the original checkout or contact 202 Lounge before paying.'},{status:409});
+    try {
+      await saveReservationBirthdate({name, email, phone, birthdate});
+    } catch {
+      return NextResponse.json({error:'We could not save your reservation details. Please try again shortly.'},{status:503});
+    }
     const form = new URLSearchParams();
     form.set('mode', 'payment');
     form.set('ui_mode', 'elements');

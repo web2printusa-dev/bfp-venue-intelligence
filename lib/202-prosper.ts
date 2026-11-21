@@ -37,8 +37,8 @@ function normalizePhone(phone: string) {
   return phone;
 }
 
-// The note is saved before workflow enrollment so staff can review the full submission.
-export async function saveClubSubmission(input: Submission) {
+type GuestContact = Pick<Submission, 'name' | 'email' | 'phone'>;
+async function upsertClubContact(input: GuestContact, fields: object) {
   const parts = input.name.trim().split(/\s+/);
   const result = await crm('/contacts/upsert', 'POST', {
     locationId: CLUB_LOCATION_ID,
@@ -46,13 +46,25 @@ export async function saveClubSubmission(input: Submission) {
     lastName: parts.slice(1).join(' ') || undefined,
     email: input.email.toLowerCase(),
     phone: normalizePhone(input.phone),
+    ...fields,
+  });
+  const contactId = result.contact?.id;
+  if (!contactId) throw new Error('Prosper did not return a contact ID');
+  return contactId;
+}
+
+export async function saveReservationBirthdate(input: GuestContact & {birthdate: string}) {
+  await upsertClubContact(input, {dateOfBirth: input.birthdate});
+}
+
+// The note is saved before workflow enrollment so staff can review the full submission.
+export async function saveClubSubmission(input: Submission) {
+  const contactId = await upsertClubContact(input, {
     ...(input.kind === 'reservation' && input.emailDetails ? {
       customFields: [{ key: '202_reservation_details', fieldValue: input.emailDetails }],
     } : {}),
     source: input.kind === 'reservation' ? '202 Website — Paid Table Deposit' : '202 Website — Employment Application',
   });
-  const contactId = result.contact?.id;
-  if (!contactId) throw new Error('Prosper did not return a contact ID');
   const encoded = encodeURIComponent(contactId);
   const marker = '[202 submission: ' + input.reference + ']';
   const existing = await crm('/contacts/' + encoded + '/notes', 'GET', undefined, 'v3');
