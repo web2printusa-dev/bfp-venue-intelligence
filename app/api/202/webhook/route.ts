@@ -61,13 +61,13 @@ export async function POST(request: Request) {
   try {
     const session = await readCurrentSession(incoming.id);
     if (session.payment_status !== 'paid') return NextResponse.json({ received: true, pending: true });
-    if (session.metadata?.booking_type !== '202-table-deposit' || session.amount_total !== 25000 || session.currency !== 'usd') {
+    if (session.metadata?.booking_type !== '202-table-deposit' || session.amount_total !== 10000 || session.currency !== 'usd') {
       return NextResponse.json({ received: true, unrelated: true });
     }
     if (!session.metadata?.prosper_synced) {
       const m = session.metadata;
       const details = [
-        '202 LOUNGE — $250 DEPOSIT PAID',
+        '202 LOUNGE — $100 DEPOSIT PAID',
         'Reservation reference: ' + session.id,
         'Event: ' + m.event_name + ' · ' + m.event_date,
         'Floor: ' + m.floor + ' · Preferred table: ' + m.table,
