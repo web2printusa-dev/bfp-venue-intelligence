@@ -18,14 +18,25 @@ export const {handlers,auth,signIn,signOut}=NextAuth({
       const password=typeof credentials.password==='string'?credentials.password:'';
       if(password.length>256||email.length>254)return null;
       const now=Date.now(), bucket=attempts.get(email);
-      if(bucket&&bucket.until>now&&bucket.count>=5)return null;
+      if(bucket&&bucket.until>now&&bucket.count>=5){
+        console.warn('[club-admin] sign-in rate limited');
+        return null;
+      }
       if(attempts.size>1000)attempts.clear();
       attempts.set(email,{count:bucket&&bucket.until>now?bucket.count+1:1,until:bucket&&bucket.until>now?bucket.until:now+15*60*1000});
-      const [salt,keyHex]=process.env.ADMIN_PASSWORD_HASH!.split(':');
-      if(!/^[a-f0-9]{32}$/.test(salt||'')||!/^[a-f0-9]{64}$/.test(keyHex||''))return null;
+      const hash=process.env.ADMIN_PASSWORD_HASH!.trim();
+      if(!/^[a-f0-9]{32}:[a-f0-9]{64}$/i.test(hash)){
+        console.error('[club-admin] invalid password hash configuration');
+        return null;
+      }
+      const [salt,keyHex]=hash.split(':');
       const candidate=pbkdf2Sync(password,Buffer.from(salt,'hex'),600000,32,'sha256');
       const matches=timingSafeEqual(candidate,Buffer.from(keyHex,'hex'));
-      if(!matches||email!==process.env.ADMIN_EMAIL!.trim().toLowerCase())return null;
+      const emailMatches=email===process.env.ADMIN_EMAIL!.trim().toLowerCase();
+      if(!matches||!emailMatches){
+        console.warn('[club-admin] credential mismatch', {emailMatches,passwordMatches:matches});
+        return null;
+      }
       attempts.delete(email);
       return {id:'202-admin',name:'202 Lounge',email};
     }
