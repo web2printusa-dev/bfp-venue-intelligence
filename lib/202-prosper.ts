@@ -3,7 +3,7 @@ import 'server-only';
 export const CLUB_LOCATION_ID = 'oIYe14RPMLuOrnMceJAC';
 const WORKFLOWS = {
   reservation: 'b42d8c2c-784c-4b39-a034-b8aac477b1c9',
-  application: '2b404760-0331-443c-9069-b77e37f699e7',
+  application: '7aefd313-cb1a-4420-85c8-286d8e6b6111',
 };
 type Submission = {
   kind: keyof typeof WORKFLOWS; reference: string; name: string; email: string; phone: string; details: string; emailDetails?: string;
