@@ -88,8 +88,10 @@ export default function ClubCheckout({publishableKey}:{publishableKey:string}) {
         express.on('confirm',async event=>{
           if(submittingRef.current||!actionsRef.current)return;
           submittingRef.current=true;setPaying(true);setError('');
+          let submitted=false;
           try{
             const result=await actionsRef.current.confirm({expressCheckoutConfirmEvent:event as ExpressConfirmEvent});
+            submitted=result.type!=='error';
             if(result.type==='error'){
               (event as ExpressConfirmEvent).paymentFailed({reason:'fail',message:result.error?.message});
               setError(result.error?.message||'Wallet payment could not be confirmed. Please try again.');
@@ -97,7 +99,7 @@ export default function ClubCheckout({publishableKey}:{publishableKey:string}) {
           }catch{
             (event as ExpressConfirmEvent).paymentFailed({reason:'fail'});
             setError('Wallet payment could not be confirmed. Please try again.');
-          }finally{submittingRef.current=false;setPaying(false);}
+          }finally{if(!submitted){submittingRef.current=false;setPaying(false);}}
         });
         express.mount('#club-express-checkout');
       }
@@ -122,14 +124,16 @@ export default function ClubCheckout({publishableKey}:{publishableKey:string}) {
   async function pay(){
     if(submittingRef.current||!actionsRef.current||!canPay)return;
     submittingRef.current=true;setPaying(true);setError('');
+          let submitted=false;
     try {
       const result=await actionsRef.current.confirm();
-      if(result.type==='error')setError(result.error?.message||'Please check your payment details and try again.');
+      submitted=result.type!=='error';
+            if(result.type==='error')setError(result.error?.message||'Please check your payment details and try again.');
     }catch {setError('Payment could not be confirmed. Please check your details and try again.');}
-    finally {submittingRef.current=false;setPaying(false);}
+    finally {if(!submitted){submittingRef.current=false;setPaying(false);}}
   }
   const r=booking?.reservation;
-  const night=r?new Intl.DateTimeFormat('en-US',{weekday:'long',month:'long',day:'numeric',timeZone:'UTC'}).format(new Date(r.date+'T12:00:00Z')):'';
+  const night=r?new Intl.DateTimeFormat('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric',timeZone:'UTC'}).format(new Date(r.date+'T12:00:00Z')):'';
   return <main className={styles.page}>
     <Script src="https://js.stripe.com/dahlia/stripe.js" strategy="afterInteractive" onReady={()=>setScriptReady(true)} onError={()=>{setError('Secure payment fields could not load. Check your connection and reload.');setLoading(false);}}/>
     <header className={styles.header}><Link href="/" aria-label="202 Lounge home"><img src="/202/logo.webp" alt="202 Lounge — The Experience"/></Link><Link href="/#events" className={styles.back}>← Back to events</Link></header>
