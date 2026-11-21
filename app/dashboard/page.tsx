@@ -1,3 +1,4 @@
+import DashboardRefresh from './dashboard-refresh';
 import {redirect} from 'next/navigation';
 import {auth,adminConfigured,signOut} from '../../lib/club-auth';
 
@@ -97,6 +98,7 @@ export default async function Dashboard({searchParams}:{searchParams:Promise<{af
  if(records?.next)nextParams.set('after',records.next);
  return <main className="clubAdmin">
   <style>{adminStyles}</style>
+  {(active==='tonight'||active==='reservations'||active==='applications')&&<DashboardRefresh interval={active==='applications'?60000:20000}/>}
   <aside className="clubSidebar">
    <a href="/dashboard" className="clubBrand"><img src="/202/logo.webp" alt="" width="44" height="44"/><span><strong>202 Lounge</strong><small>Owner workspace</small></span></a>
    <nav aria-label="Club operations"><small>WORKSPACE</small>{navigation.map(([id,label],index)=>

@@ -5,7 +5,21 @@ import './careers.css';
 export default function Careers(){
  const [form,setForm]=useState({name:'',role:'VIP Host',email:'',phone:'',availability:'',experience:'',why:''});
  const [status,setStatus]=useState('');
- async function submit(e:React.FormEvent){e.preventDefault();setStatus('SUBMITTING');const r=await fetch('/api/applications',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(form)});const d=await r.json();if(d.ok){setStatus('RECEIVED');setForm({name:'',role:'VIP Host',email:'',phone:'',availability:'',experience:'',why:''})}else setStatus(d.error||'Please try again.')}
+ async function submit(e:React.FormEvent){
+  e.preventDefault();
+  if(status==='SUBMITTING')return;
+  setStatus('SUBMITTING');
+  try {
+   const r=await fetch('/api/applications',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(form)});
+   const d=await r.json();
+   if(r.ok&&d.ok){
+    setStatus('RECEIVED');
+    setForm({name:'',role:'VIP Host',email:'',phone:'',availability:'',experience:'',why:''});
+   } else setStatus(d.error||'We could not confirm receipt. Please try again.');
+  } catch {
+   setStatus('We could not confirm receipt. Your answers are still here; please try again.');
+  }
+ }
  function set(k:string,v:string){setForm(f=>({...f,[k]:v}))}
  return <main className="careers">
   <header><a href="/" className="careerLogo">202<span>°</span></a><a href="/">BACK TO 202 LOUNGE ↗</a></header>

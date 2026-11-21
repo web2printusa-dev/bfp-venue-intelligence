@@ -54,19 +54,19 @@ export async function saveClubSubmission(input: Submission) {
   if (!contactId) throw new Error('Prosper did not return a contact ID');
   const encoded = encodeURIComponent(contactId);
   const marker = '[202 submission: ' + input.reference + ']';
-  const existing = await crm('/contacts/' + encoded + '/notes');
+  const existing = await crm('/contacts/' + encoded + '/notes', 'GET', undefined, 'v3');
   const notes: {body?: string; bodyText?: string}[] = existing.notes || [];
   const recorded = notes.some(note => (note.bodyText || note.body)?.includes(marker));
   if (!recorded) {
     await crm('/contacts/' + encoded + '/notes', 'POST', {
       body: marker + '\n' + input.details,
-    });
+    }, 'v3');
   }
   const completeMarker = '[202 workflow queued: ' + input.reference + ']';
   if (!notes.some(note => (note.bodyText || note.body)?.includes(completeMarker))) {
     // Enroll directly for every new submission, including returning guests whose tag already exists.
-    await crm('/contacts/' + encoded + '/workflow/' + WORKFLOWS[input.kind], 'POST', {});
-    await crm('/contacts/' + encoded + '/notes', 'POST', {body: completeMarker});
+    await crm('/contacts/' + encoded + '/workflow/' + WORKFLOWS[input.kind], 'POST', {}, 'v3');
+    await crm('/contacts/' + encoded + '/notes', 'POST', {body: completeMarker}, 'v3');
   }
   return { contactId };
 }
