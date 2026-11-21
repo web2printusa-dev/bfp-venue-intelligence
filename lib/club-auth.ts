@@ -5,8 +5,9 @@ import {createHash, pbkdf2Sync, timingSafeEqual} from 'node:crypto';
 export function adminConfigured(){return Boolean(process.env.ADMIN_EMAIL&&process.env.ADMIN_PASSWORD_HASH&&process.env.AUTH_SECRET);}
 const revision=()=>createHash('sha256').update((process.env.ADMIN_EMAIL||'')+':'+(process.env.ADMIN_PASSWORD_HASH||'')).digest('hex');
 const ownerRevision=()=>createHash('sha256').update('202-owner:'+process.env.ADMIN_OWNER_PASSWORD_HASH?.trim()).digest('hex');
+const validHash=(hash:string)=>/^[a-f0-9]{32}:[a-f0-9]{64}$/i.test(hash);
 function matchesPassword(password:string, hash:string){
-  if(!/^[a-f0-9]{32}:[a-f0-9]{64}$/i.test(hash))return false;
+  if(!validHash(hash))return false;
   const [salt,keyHex]=hash.split(':');
   return timingSafeEqual(pbkdf2Sync(password,Buffer.from(salt,'hex'),600000,32,'sha256'),Buffer.from(keyHex,'hex'));
 }
@@ -34,7 +35,7 @@ export const {handlers,auth,signIn,signOut}=NextAuth({
       const ownerHash=process.env.ADMIN_OWNER_PASSWORD_HASH?.trim();
       const ownerMatches=ownerHash?matchesPassword(password,ownerHash):false;
       if(!mainMatches&&!ownerMatches){
-        console.warn('[club-admin] password mismatch');
+        console.warn('[club-admin] sign-in rejected', {ownerCredential: !ownerHash ? 'missing' : validHash(ownerHash) ? 'mismatch' : 'invalid-format'});
         return null;
       }
       attempts.delete(email);
