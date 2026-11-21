@@ -11,12 +11,12 @@ export const {handlers,auth,signIn,signOut}=NextAuth({
   session:{strategy:'jwt',maxAge:8*60*60},
   pages:{signIn:'/admin',error:'/admin'},
   providers:[Credentials({
-    credentials:{email:{label:'Email',type:'email'},password:{label:'Password',type:'password'}},
+    credentials:{password:{label:'Password',type:'password'}},
     async authorize(credentials){
       if(!adminConfigured())return null;
-      const email=typeof credentials.email==='string'?credentials.email.trim().toLowerCase():'';
+      const email=process.env.ADMIN_EMAIL!.trim().toLowerCase();
       const password=typeof credentials.password==='string'?credentials.password:'';
-      if(password.length>256||email.length>254)return null;
+      if(!password||password.length>256)return null;
       const now=Date.now(), bucket=attempts.get(email);
       if(bucket&&bucket.until>now&&bucket.count>=5){
         console.warn('[club-admin] sign-in rate limited');
@@ -32,9 +32,8 @@ export const {handlers,auth,signIn,signOut}=NextAuth({
       const [salt,keyHex]=hash.split(':');
       const candidate=pbkdf2Sync(password,Buffer.from(salt,'hex'),600000,32,'sha256');
       const matches=timingSafeEqual(candidate,Buffer.from(keyHex,'hex'));
-      const emailMatches=email===process.env.ADMIN_EMAIL!.trim().toLowerCase();
-      if(!matches||!emailMatches){
-        console.warn('[club-admin] credential mismatch', {emailMatches,passwordMatches:matches});
+      if(!matches){
+        console.warn('[club-admin] password mismatch');
         return null;
       }
       attempts.delete(email);
